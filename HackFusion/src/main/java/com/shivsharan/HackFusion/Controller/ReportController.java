@@ -38,7 +38,6 @@ public class ReportController {
 //            r.setPriority(classificationDetailsDto.getFinalPriority());
             return ResponseEntity.ok().body(r.getId());
     }
-
     @GetMapping("/getReportStatus")
     public ResponseEntity reportStatus(@RequestParam UUID reportid){
         List<ReportStatus> ret = reportService.getReportStatus(reportid) ;
