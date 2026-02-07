@@ -1,23 +1,30 @@
 package com.shivsharan.HackFusion.Model;
 
 import jakarta.persistence.*;
-import org.springframework.context.annotation.EnableMBeanExport;
-
+import lombok.*;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
+@Table(name = "report")
+@Data
 public class Report {
-    @GeneratedValue(strategy = GenerationType.UUID)
+
     @Id
-    UUID id ;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Column(nullable = false,unique = true)
-    String username ;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "operator_id", nullable = false)
+    private Operators operators; // This creates the foreign key to the Operator table
 
-    LocalDate date ;
+    @Column(name = "entry_date")
+    private LocalDate entryDate;
 
-    List<String> url ;
+    @Column(name = "media_url")
+    private String mediaUrl;
 
+    private String status;
+
+    private int priority;
 }
