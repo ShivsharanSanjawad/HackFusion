@@ -16,7 +16,11 @@ public class Report {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operator_id", nullable = false)
-    private Operators operators;
+    private Operators senders;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_id", nullable = true)
+    private Operators workers;
 
     @Column(name = "entry_date")
     private LocalDate entryDate;
