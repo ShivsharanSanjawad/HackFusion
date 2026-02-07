@@ -116,8 +116,7 @@ interface Report {
   pdf_url: string;
 }
 export default function CitizenDashboard() {
-  const { user } = useAuth();
-  const userid = ""
+  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
   const [reports, setReports] = useState<Report[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -125,7 +124,13 @@ export default function CitizenDashboard() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const response = await fetch('http://localhost:8080/getReports');
+      const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
+
+        if (response.ok) {
+            const reports = await response.json();
+        } else {
+            console.error("Failed to fetch reports:", response.status);
+        }
         const data = await response.json();
         setReports(data);
       } catch (error) {
@@ -151,7 +156,7 @@ export default function CitizenDashboard() {
         >
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back, {user?.name?.split(' ')[0] || 'Citizen'}! 👋
+              Welcome back, Random Citizen👋
             </h1>
             <p className="text-muted-foreground">
               Track your reported issues and make a difference in your community.
