@@ -51,7 +51,97 @@ export default function FieldStaffDashboard() {
     photoCount: 0,
     images: [],
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Hardcoded IDs for API requests
+  const HARDCODED_IDS = {
+    reportID: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    departmentId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    workerId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  };
+
+  // Convert File to base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle submitting status updates
+  const handleSubmitUpdate = async () => {
+    if (!selectedIncident) return;
+
+    setIsSubmitting(true);
+    try {
+      if (updateType === 'resolved') {
+        // Convert images to base64
+        const imageStrings: string[] = [];
+        for (const file of updateData.images || []) {
+          const base64 = await fileToBase64(file);
+          imageStrings.push(base64);
+        }
+
+        const payload = {
+          reportID: HARDCODED_IDS.reportID,
+          workerID: HARDCODED_IDS.workerId,
+          images: imageStrings,
+          description: updateData.notes || '',
+          date: updateData.updateDate || new Date().toISOString().split('T')[0],
+        };
+
+        const response = await fetch('http://localhost:8080/worker/completeReport', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to complete report: ${response.statusText}`);
+        }
+      } else {
+        // Update status (covers both 'in-progress' and 'update-status')
+        const payload = {
+          reportID: HARDCODED_IDS.reportID,
+          departmentId: HARDCODED_IDS.departmentId,
+          workerId: HARDCODED_IDS.workerId,
+          newStatus: updateType === 'in-progress' ? 'in-progress' : (updateData.newStatus || ''),
+          currDate: updateData.updateDate || new Date().toISOString().split('T')[0],
+          description: updateData.notes || '',
+        };
+
+        const response = await fetch('http://localhost:8080/worker/updateStatus', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update status: ${response.statusText}`);
+        }
+      }
+
+      // Success - close panel and reset
+      setShowUpdatePanel(false);
+      setUpdateType(null);
+      setUpdateData({ notes: '', photoCount: 0, images: [] });
+    } catch (error) {
+      console.error('Error submitting update:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const userDepartment = user?.department;
   const assignedTasks = useMemo(() => {
@@ -504,14 +594,20 @@ export default function FieldStaffDashboard() {
                       <div className="flex gap-2 pt-4 border-t border-border">
                         <Button
                           className="flex-1 bg-gradient-primary hover:opacity-90"
-                          onClick={() => {
-                            setShowUpdatePanel(false);
-                            setUpdateType(null);
-                            setUpdateData({ notes: '', photoCount: 0, images: [] });
-                          }}
+                          onClick={handleSubmitUpdate}
+                          disabled={isSubmitting}
                         >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Submit Update
+                          {isSubmitting ? (
+                            <>
+                              <Zap className="w-4 h-4 mr-2 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Submit Update
+                            </>
+                          )}
                         </Button>
                         <Button
                           variant="outline"
@@ -520,6 +616,7 @@ export default function FieldStaffDashboard() {
                             setShowUpdatePanel(false);
                             setUpdateType(null);
                           }}
+                          disabled={isSubmitting}
                         >
                           Cancel
                         </Button>

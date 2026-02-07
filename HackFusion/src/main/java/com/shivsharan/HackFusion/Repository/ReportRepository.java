@@ -4,6 +4,7 @@ import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
 import com.shivsharan.HackFusion.DTO.OverallStatsDTO;
 import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,7 +20,10 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
     Optional<Report> findById(UUID id);
     List<Report> findByDepartment_Id(UUID departmentId);
     List<Report> findByWorkersId(UUID workerId);
+
+    @EntityGraph(attributePaths = {"senders", "department"})
     List<Report> findBySenders_Id(UUID userId);
+
     List<Report> findBySenders(Operators senders);
     @Query("""
         SELECT new com.shivsharan.HackFusion.DTO.DepartmentRankDTO(

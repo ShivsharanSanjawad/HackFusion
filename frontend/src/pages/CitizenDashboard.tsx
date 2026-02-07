@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents } from '@/contexts/IncidentContext';
 import { mockDepartments } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { useSVGOverlay } from 'react-leaflet/SVGOverlay';
 
 // Custom Metric Card Components for CitizenDashboard
 function UniqueMetricCard({
@@ -101,40 +102,63 @@ function UniqueMetricCard({
     </motion.div>
   );
 }
-interface Report {
+export interface Report {
   id: string; 
   senders: { id: string; name: string; role: string };
   entryDate: string;
   issueSince: string;
-  media_url: string[];
+  media_url: string[] | null;
   description: string;
   status: string;
   priority: number;
   upvotes: number;
   lat: number;
   lon: number;
-  pdf_url: string;
+  pdf_url: string | null;
+  department?: { id: string; name: string };
 }
 export default function CitizenDashboard() {
-  const { user } = useAuth();
-  const userid = ""
+  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
   const [reports, setReports] = useState<Report[]>([]);
+  const [inProgressReports, setInProgressReports] = useState<Report[]>([]);
+  const [resolvedReports, setResolvedReports] = useState<Report[]>([]);
+  const [upvotes,setUpvotes] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReports = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/getReports');
-        const data = await response.json();
-        setReports(data);
-      } catch (error) {
-        console.error("Error fetching reports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
 
+    
+    // 1. Check if the response is okay first
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // 2. Parse the body ONCE
+    const data = await response.json(); 
+    console.log(data);
+    const inProgress = data.filter(report => report.status === 'IN_PROGRESS');
+    setInProgressReports(inProgress);
+
+    const resolved = data.filter(report => report.status === 'RESOLVED');
+    setResolvedReports(resolved);
+    console.log("Filtered In-Progress Reports:", inProgress);
+
+    const totalUpvotes = data.reduce((sum, report) => sum + report.upvotes, 0);
+    setUpvotes(totalUpvotes);
+
+    // 3. Now you can use 'data' as many times as you want
+    console.log("Fetched Data:", data); 
+    setReports(data);
+
+  } catch (error) {
+    // This will now catch both Network errors and Parsing errors
+    console.error("Error fetching reports:", error);
+  }
+};
     fetchReports();
   }, []);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -151,7 +175,7 @@ export default function CitizenDashboard() {
         >
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back, {user?.name?.split(' ')[0] || 'Citizen'}! 👋
+              Welcome back, Random Citizen👋
             </h1>
             <p className="text-muted-foreground">
               Track your reported issues and make a difference in your community.
@@ -178,7 +202,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="In Progress"
-            value={0}
+            value={inProgressReports.length}
             icon={Clock}
             color="text-orange-500"
             trend="Being worked on"
@@ -186,7 +210,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Resolved"
-            value={0}
+            value={resolvedReports.length}
             icon={CheckCircle2}
             color="text-green-500"
             trend="Successfully fixed"
@@ -194,7 +218,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Total Upvotes"
-            value={0}
+            value={upvotes}
             icon={Zap}
             color="text-purple-500"
             trend="Community support"
@@ -202,7 +226,7 @@ export default function CitizenDashboard() {
           />
         </div>
 
-        {/* Main Content Grid
+        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-4">
@@ -222,22 +246,24 @@ export default function CitizenDashboard() {
 
             <div className="space-y-4">
               {reports.length > 0 ? (
-                reports.map((incident, index) => (
-                  <IncidentCard
-                    key={incident.id}
-                    incident={incident}
-                    delay={index * 0.1}
-                    hasUpvoted={upvotedIncidents.has(incident.id)}
-                    onUpvote={() => {
-                      if (!upvotedIncidents.has(incident.id)) {
-                        setUpvotedIncidents(new Set([...upvotedIncidents, incident.id]));
-                        upvoteIncident(incident.id);
-                      }
-                    }}
-                  />
-                ))
+                reports
+                  .filter(r => r.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((report, index) => (
+                    <IncidentCard
+                      key={report.id}
+                      incident={report} // Passing the Report object directly
+                      delay={index * 0.1}
+                      hasUpvoted={upvotedIncidents.has(report.id)}
+                      onUpvote={() => {
+                        if (!upvotedIncidents.has(report.id)) {
+                          setUpvotedIncidents(new Set([...upvotedIncidents, report.id]));
+                          // upvoteIncident API call logic here
+                        }
+                      }}
+                    />
+                  ))
               ) : (
-                <div className="glass-card p-12 text-center">
+                <div className="glass-card p-12 text-center border border-dashed rounded-2xl">
                   <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="font-semibold mb-2">No incidents found</h3>
                   <p className="text-muted-foreground text-sm">
@@ -247,44 +273,29 @@ export default function CitizenDashboard() {
               )}
             </div>
           </div>
+
           <div className="space-y-6">
-            <div className="glass-card p-4">
+            <div className="glass-card p-4 rounded-2xl border bg-white/50 backdrop-blur-sm">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-4 h-4 text-red-500" />
                 Your Area Map
               </h3>
-              <IncidentMap incidents={userIncidents} height="300px" />
+              {/* Passing the full reports array to the map */}
+              <IncidentMap incidents={reports} height="300px" />
             </div>
 
-            <div className="glass-card p-6">
-              <h3 className="font-semibold mb-4">Department Performance</h3>
-              <div className="space-y-4">
-                {mockDepartments.slice(0, 3).map((dept) => (
-                  <div key={dept.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{dept.shortCode}</p>
-                      <p className="text-xs text-muted-foreground">{dept.avgResolutionTime}h avg</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-full relative flex items-center justify-center bg-muted">
-                      <span className="text-xs font-bold text-primary">{dept.performanceScore}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="mt-6 pt-6 border-t border-border"
+            <div className="glass-card p-6 rounded-2xl border bg-white/50 backdrop-blur-sm">
+              <h3 className="font-semibold mb-4 text-blue-600">Civic Support</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Need urgent assistance regarding your filed reports?
+              </p>
+              <Button 
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-200"
+                onClick={() => window.open('tel:+911234567890')}
               >
-                <Button 
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  onClick={() => window.open('tel:+911234567890')}
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Call Support Team
-                </Button>
-              </motion.div>
+                <Phone className="w-4 h-4 mr-2" />
+                Call Support Team
+              </Button>
             </div>
           </div>
         </div>
@@ -295,9 +306,8 @@ export default function CitizenDashboard() {
           onSubmit={(data) => {
             console.log('New incident report:', data);
             setShowReportModal(false);
-            // In a real app, this would submit to an API
           }}
-        /> */}
+        />
       </div>
     </DashboardLayout>
   );
