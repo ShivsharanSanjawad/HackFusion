@@ -1,7 +1,7 @@
 package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.Model.Report;
-import com.shivsharan.HackFusion.dto.ClassificationDetailsDto;
+import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
