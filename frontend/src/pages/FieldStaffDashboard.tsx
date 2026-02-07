@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
@@ -52,7 +52,61 @@ export default function FieldStaffDashboard() {
     images: [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignedTasks, setAssignedTasks] = useState<any[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Constant userId for API calls
+  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setTasksLoading(true);
+        const response = await fetch(`http://localhost:8080/worker/getTasks?userId=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': '123',
+            'X-Username': 'venkat',
+            'X-User-Type': 'Staff',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Fetched Tasks:', data);
+        
+        // Normalize the API response to match the expected structure
+        const normalizedTasks = (Array.isArray(data) ? data : []).map((task: any) => ({
+          id: task.id,
+          title: task.title || task.description || 'Untitled Task',
+          description: task.description || '',
+          status: task.status || 'assigned',
+          priority: task.priority || 'medium',
+          location: {
+            address: task.location?.address || task.address || 'Unknown Location',
+            lat: task.location?.lat || task.lat || 0,
+            lng: task.location?.lng || task.lon || task.lng || 0,
+          },
+          ...task // Include all original properties
+        }));
+        
+        setAssignedTasks(normalizedTasks);
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        setAssignedTasks([]);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [userId]);
 
   // Hardcoded IDs for API requests
   const HARDCODED_IDS = {
@@ -150,14 +204,9 @@ export default function FieldStaffDashboard() {
   };
 
   const userDepartment = user?.department;
-  const assignedTasks = useMemo(() => {
-    return incidents.filter(
-      i => i.assignedTo?.id === user?.id && i.status !== 'resolved'
-    );
-  }, [incidents, user]);
 
   const selectedIncident = selectedTask
-    ? incidents.find(i => i.id === selectedTask)
+    ? assignedTasks.find(i => i.id === selectedTask)
     : assignedTasks[0];
 
   const taskStats = useMemo(() => {
@@ -319,22 +368,32 @@ export default function FieldStaffDashboard() {
             <h3 className="font-semibold text-lg">Your Tasks</h3>
             <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
               <AnimatePresence mode="popLayout">
-                {assignedTasks.length > 0 ? (
-                  assignedTasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      isSelected={selectedTask === task.id || !selectedTask && task === assignedTasks[0]}
-                    />
-                  ))
+                {!tasksLoading ? (
+                  assignedTasks.length > 0 ? (
+                    assignedTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        isSelected={selectedTask === task.id || !selectedTask && task === assignedTasks[0]}
+                      />
+                    ))
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-center py-8"
+                    >
+                      <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-30" />
+                      <p className="text-sm text-muted-foreground">No tasks assigned yet</p>
+                    </motion.div>
+                  )
                 ) : (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-center py-8"
+                    className="flex items-center justify-center py-8"
                   >
-                    <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-30" />
-                    <p className="text-sm text-muted-foreground">No tasks assigned yet</p>
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   </motion.div>
                 )}
               </AnimatePresence>
