@@ -10,7 +10,8 @@ public class DepartmentService {
     @Autowired
     DepartmentRepository departmentRepository;
 
-    public Department findByName(String name){
+    public Department findByName(String name)
+    {
         return departmentRepository.findByName(name);
     }
 }
