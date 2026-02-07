@@ -1,6 +1,7 @@
 package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.DTO.ReportRequest;
+import com.shivsharan.HackFusion.DTO.assignDTO;
 import com.shivsharan.HackFusion.Model.Report;
 import org.springframework.stereotype.Service;
 
@@ -22,5 +23,6 @@ public class ReportService {
     public void getWorkers(UUID departmentId){
 
     }
-
+    public void assignWorker(assignDTO dto){
+    }
 }

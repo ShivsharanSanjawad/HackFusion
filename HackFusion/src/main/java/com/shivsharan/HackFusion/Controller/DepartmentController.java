@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.DTO.assignDTO;
 import com.shivsharan.HackFusion.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,5 +27,10 @@ public class DepartmentController {
         return ResponseEntity.ok().body("LIST OF WORKERS OF DEPARTMENT");
     }
 
-    
+    @PutMapping("/assignWorkers")
+    public ResponseEntity<String> assignWorker(@RequestBody assignDTO dto){
+        reportService.assignWorker(dto);
+        return ResponseEntity.ok().body("ASSIGNMENT DONE");
+    }
+
 }
