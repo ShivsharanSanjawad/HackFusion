@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents } from '@/contexts/IncidentContext';
 import { mockDepartments } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { useSVGOverlay } from 'react-leaflet/SVGOverlay';
 
 // Custom Metric Card Components for CitizenDashboard
 function UniqueMetricCard({
@@ -118,28 +119,44 @@ interface Report {
 export default function CitizenDashboard() {
   const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
   const [reports, setReports] = useState<Report[]>([]);
+  const [inProgressReports, setInProgressReports] = useState<Report[]>([]);
+  const [resolvedReports, setResolvedReports] = useState<Report[]>([]);
+  const [upvotes,setUpvotes] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReports = async () => {
-      try {
-      const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
+  try {
+    const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
 
-        if (response.ok) {
-            const reports = await response.json();
-        } else {
-            console.error("Failed to fetch reports:", response.status);
-        }
-        const data = await response.json();
-        setReports(data);
-      } catch (error) {
-        console.error("Error fetching reports:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    
+    // 1. Check if the response is okay first
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
+    // 2. Parse the body ONCE
+    const data = await response.json(); 
+    const inProgress = data.filter(report => report.status === 'IN_PROGRESS');
+    setInProgressReports(inProgress);
+
+    const resolved = data.filter(report => report.status === 'RESOLVED');
+    setResolvedReports(resolved);
+    console.log("Filtered In-Progress Reports:", inProgress);
+
+    const totalUpvotes = data.reduce((sum, report) => sum + report.upvotes, 0);
+    setUpvotes(totalUpvotes);
+
+    // 3. Now you can use 'data' as many times as you want
+    console.log("Fetched Data:", data); 
+    setReports(data);
+
+  } catch (error) {
+    // This will now catch both Network errors and Parsing errors
+    console.error("Error fetching reports:", error);
+  }
+};
     fetchReports();
   }, []);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -183,7 +200,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="In Progress"
-            value={0}
+            value={inProgressReports.length}
             icon={Clock}
             color="text-orange-500"
             trend="Being worked on"
@@ -191,7 +208,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Resolved"
-            value={0}
+            value={resolvedReports.length}
             icon={CheckCircle2}
             color="text-green-500"
             trend="Successfully fixed"
@@ -199,7 +216,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Total Upvotes"
-            value={0}
+            value={upvotes}
             icon={Zap}
             color="text-purple-500"
             trend="Community support"
