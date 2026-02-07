@@ -1,9 +1,13 @@
 package com.shivsharan.HackFusion.Controller;
 
-import com.shivsharan.HackFusion.Service.PinataService;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.io.InputStreamResource;
+
+import com.shivsharan.HackFusion.Annotation.Auditable;
+import com.shivsharan.HackFusion.Service.PinataService;
 
 @RestController
 @RequestMapping("/api/ipfs")
@@ -15,6 +19,19 @@ public class IpfsController {
         this.pinataService = pinataService;
     }
 
+    /**
+     * Upload a file to IPFS via Pinata
+     * This endpoint is audited - all uploads are logged with checksums and can be uploaded to blockchain
+     *
+     * @param file The file to upload
+     * @return The CID (Content Identifier) of the uploaded file
+     * @throws Exception if upload fails
+     */
+    @Auditable(
+            action = "FILE_UPLOADED",
+            entityType = "DOCUMENT",
+            uploadToIpfs = true  // Upload audit log to blockchain
+    )
     @PostMapping(
             value = "/upload",
             consumes = "multipart/form-data"
