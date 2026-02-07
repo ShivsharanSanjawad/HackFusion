@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents } from '@/contexts/IncidentContext';
 import { mockDepartments } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { useSVGOverlay } from 'react-leaflet/SVGOverlay';
 
 // Custom Metric Card Components for CitizenDashboard
 function UniqueMetricCard({
@@ -101,23 +102,65 @@ function UniqueMetricCard({
     </motion.div>
   );
 }
-
+interface Report {
+  id: string; 
+  senders: { id: string; name: string; role: string };
+  entryDate: string;
+  issueSince: string;
+  media_url: string[];
+  description: string;
+  status: string;
+  priority: number;
+  upvotes: number;
+  lat: number;
+  lon: number;
+  pdf_url: string;
+}
 export default function CitizenDashboard() {
-  const { user } = useAuth();
-  const { incidents, upvoteIncident } = useIncidents();
+  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  const [reports, setReports] = useState<Report[]>([]);
+  const [inProgressReports, setInProgressReports] = useState<Report[]>([]);
+  const [resolvedReports, setResolvedReports] = useState<Report[]>([]);
+  const [upvotes,setUpvotes] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+  try {
+    const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
+
+    
+    // 1. Check if the response is okay first
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    // 2. Parse the body ONCE
+    const data = await response.json(); 
+    const inProgress = data.filter(report => report.status === 'IN_PROGRESS');
+    setInProgressReports(inProgress);
+
+    const resolved = data.filter(report => report.status === 'RESOLVED');
+    setResolvedReports(resolved);
+    console.log("Filtered In-Progress Reports:", inProgress);
+
+    const totalUpvotes = data.reduce((sum, report) => sum + report.upvotes, 0);
+    setUpvotes(totalUpvotes);
+
+    // 3. Now you can use 'data' as many times as you want
+    console.log("Fetched Data:", data); 
+    setReports(data);
+
+  } catch (error) {
+    // This will now catch both Network errors and Parsing errors
+    console.error("Error fetching reports:", error);
+  }
+};
+    fetchReports();
+  }, []);
   const [showReportModal, setShowReportModal] = useState(false);
   const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
-
-  const userIncidents = incidents.filter(i => i.reportedBy.role === 'citizen');
-  const filteredIncidents = userIncidents.filter(i =>
-    i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    i.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const inProgressCount = userIncidents.filter(i => i.status === 'in-progress').length;
-  const resolvedCount = userIncidents.filter(i => i.status === 'resolved').length;
-  const totalUpvotes = userIncidents.reduce((acc, i) => acc + i.upvotes, 0);
 
   return (
     <DashboardLayout>
@@ -130,7 +173,7 @@ export default function CitizenDashboard() {
         >
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back, {user?.name?.split(' ')[0] || 'Citizen'}! 👋
+              Welcome back, Random Citizen👋
             </h1>
             <p className="text-muted-foreground">
               Track your reported issues and make a difference in your community.
@@ -149,7 +192,7 @@ export default function CitizenDashboard() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <UniqueMetricCard
             title="My Reports"
-            value={userIncidents.length}
+            value={reports.length}
             icon={FileText}
             color="text-blue-500"
             trend="Keep reporting issues"
@@ -157,7 +200,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="In Progress"
-            value={inProgressCount}
+            value={inProgressReports.length}
             icon={Clock}
             color="text-orange-500"
             trend="Being worked on"
@@ -165,7 +208,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Resolved"
-            value={resolvedCount}
+            value={resolvedReports.length}
             icon={CheckCircle2}
             color="text-green-500"
             trend="Successfully fixed"
@@ -173,7 +216,7 @@ export default function CitizenDashboard() {
           />
           <UniqueMetricCard
             title="Total Upvotes"
-            value={totalUpvotes}
+            value={upvotes}
             icon={Zap}
             color="text-purple-500"
             trend="Community support"
@@ -181,9 +224,8 @@ export default function CitizenDashboard() {
           />
         </div>
 
-        {/* Main Content Grid */}
+        {/* Main Content Grid
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Incidents List */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
@@ -201,8 +243,8 @@ export default function CitizenDashboard() {
             </div>
 
             <div className="space-y-4">
-              {filteredIncidents.length > 0 ? (
-                filteredIncidents.map((incident, index) => (
+              {reports.length > 0 ? (
+                reports.map((incident, index) => (
                   <IncidentCard
                     key={incident.id}
                     incident={incident}
@@ -227,8 +269,6 @@ export default function CitizenDashboard() {
               )}
             </div>
           </div>
-
-          {/* Sidebar - Map & Stats */}
           <div className="space-y-6">
             <div className="glass-card p-4">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
@@ -253,8 +293,6 @@ export default function CitizenDashboard() {
                   </div>
                 ))}
               </div>
-
-              {/* Call Support Team Button */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -273,7 +311,6 @@ export default function CitizenDashboard() {
           </div>
         </div>
 
-        {/* Report Modal */}
         <ReportIncidentModal 
           open={showReportModal} 
           onOpenChange={setShowReportModal}
@@ -282,7 +319,7 @@ export default function CitizenDashboard() {
             setShowReportModal(false);
             // In a real app, this would submit to an API
           }}
-        />
+        /> */}
       </div>
     </DashboardLayout>
   );

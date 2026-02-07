@@ -19,7 +19,6 @@ import {
   Zap,
   Edit3,
   X,
-  Loader,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -52,12 +51,7 @@ export default function FieldStaffDashboard() {
     photoCount: 0,
     images: [],
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Hardcoded IDs as per requirement
-  const HARDCODED_ID = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
   const userDepartment = user?.department;
   const assignedTasks = useMemo(() => {
@@ -89,100 +83,6 @@ export default function FieldStaffDashboard() {
       images: []
     });
     setShowUpdatePanel(true);
-  };
-
-  const handleSubmitUpdate = async () => {
-    if (!selectedIncident) return;
-    
-    try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      if (updateType === 'update-status') {
-        // Call updateStatus API
-        const payload = {
-          reportID: HARDCODED_ID,
-          departmentId: HARDCODED_ID,
-          workerId: HARDCODED_ID,
-          newStatus: updateData.newStatus || '',
-          currDate: updateData.updateDate || new Date().toISOString().split('T')[0],
-          description: updateData.notes || '',
-        };
-
-        const response = await fetch('http://localhost:8080/worker/updateStatus', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Update Status Response:', data);
-        alert('Status updated successfully!');
-        setShowUpdatePanel(false);
-        setUpdateType(null);
-        setUpdateData({ notes: '', photoCount: 0, images: [] });
-      } else if (updateType === 'resolved') {
-        // Convert images to base64 or file paths
-        const imageStrings: string[] = [];
-        if (updateData.images && updateData.images.length > 0) {
-          for (const file of updateData.images) {
-            const reader = new FileReader();
-            const base64 = await new Promise<string>((resolve, reject) => {
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            imageStrings.push(base64);
-          }
-        }
-
-        // Call completeReport API
-        const payload = {
-          reportID: HARDCODED_ID,
-          workerID: HARDCODED_ID,
-          images: imageStrings,
-          description: updateData.notes || '',
-          date: updateData.updateDate || new Date().toISOString().split('T')[0],
-        };
-
-        const response = await fetch('http://localhost:8080/worker/completeReport', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
-        }
-
-        const data = await response.text();
-        console.log('Complete Report Response:', data);
-        alert('Report completed successfully!');
-        setShowUpdatePanel(false);
-        setUpdateType(null);
-        setUpdateData({ notes: '', photoCount: 0, images: [] });
-      } else if (updateType === 'in-progress') {
-        // In-progress doesn't call an API, just close the panel
-        alert('In-progress update saved!');
-        setShowUpdatePanel(false);
-        setUpdateType(null);
-        setUpdateData({ notes: '', photoCount: 0, images: [] });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit update';
-      setSubmitError(errorMessage);
-      console.error('Error submitting update:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const TaskCard = ({ task, isSelected }: { task: typeof assignedTasks[0]; isSelected: boolean }) => {
@@ -603,21 +503,15 @@ export default function FieldStaffDashboard() {
 
                       <div className="flex gap-2 pt-4 border-t border-border">
                         <Button
-                          className="flex-1 bg-gradient-primary hover:opacity-90 disabled:opacity-50"
-                          onClick={handleSubmitUpdate}
-                          disabled={isSubmitting}
+                          className="flex-1 bg-gradient-primary hover:opacity-90"
+                          onClick={() => {
+                            setShowUpdatePanel(false);
+                            setUpdateType(null);
+                            setUpdateData({ notes: '', photoCount: 0, images: [] });
+                          }}
                         >
-                          {isSubmitting ? (
-                            <>
-                              <Loader className="w-4 h-4 mr-2 animate-spin" />
-                              Submitting...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Submit Update
-                            </>
-                          )}
+                          <Upload className="w-4 h-4 mr-2" />
+                          Submit Update
                         </Button>
                         <Button
                           variant="outline"
@@ -625,27 +519,11 @@ export default function FieldStaffDashboard() {
                           onClick={() => {
                             setShowUpdatePanel(false);
                             setUpdateType(null);
-                            setSubmitError(null);
                           }}
-                          disabled={isSubmitting}
                         >
                           Cancel
                         </Button>
                       </div>
-
-                      {submitError && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 flex items-start gap-2"
-                        >
-                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium text-red-600 dark:text-red-400">Error</p>
-                            <p className="text-xs text-red-500 dark:text-red-300 mt-1">{submitError}</p>
-                          </div>
-                        </motion.div>
-                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
