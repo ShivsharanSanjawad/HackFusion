@@ -1,6 +1,7 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
 import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Service.OperatorsService;
 import com.shivsharan.HackFusion.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -22,21 +23,23 @@ public class IssueBot extends AbilityBot {
     // 1. Declare services to hold the injected instances
     private final DepartmentService departmentService;
     private final ReportService reportService;
+    private final OperatorsService operatorsService;
 
     @Autowired
     public IssueBot(Environment env,
                     DepartmentService departmentService,
-                    ReportService reportService) {
+                    ReportService reportService,
+                    OperatorsService operatorsService) {
         // 2. Pass Bot Token and Username
         super(env.getProperty("TelegramBot"), "CivilIssueRegister");
 
         // 3. Save the services
         this.departmentService = departmentService;
         this.reportService = reportService;
-
+        this.operatorsService = operatorsService;
         // 4. Initialize Handler with ALL 5 required arguments
         // (silent, db, this, departmentService, reportService)
-        this.responseHandler = new ResponseHandler(silent, db, this, departmentService, reportService);
+        this.responseHandler = new ResponseHandler(silent, db, this, departmentService, reportService, operatorsService);
     }
 
     @Override

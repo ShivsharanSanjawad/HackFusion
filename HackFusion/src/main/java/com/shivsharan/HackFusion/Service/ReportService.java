@@ -39,18 +39,12 @@ public class ReportService {
         report.setLon(dto.getLon());
         report.setMedia_url(dto.getMedia_url());
 
-        // 3. Set default values for a new report
         report.setEntryDate(LocalDate.now());
         report.setStatus("PENDING");
         report.setPriority(1); // Default medium priority
         report.setUpvotes(0);
-
-        Department dept = departmentRepository.findById(dto.getDepartment_id())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-
-        Operators operator = operatorsRepository.findById(dto.getUid())
-                .orElseThrow(() -> new RuntimeException("Operator not found"));
-
+        Department dept = null;
+        Operators operator = operatorsRepository.findByUsername(dto.getUsername());
         report.setDepartment(dept);
         report.setSenders(operator);
 

@@ -2,6 +2,8 @@ package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
+import jakarta.ws.rs.client.Entity;
+import org.slf4j.Logger;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,7 @@ import java.util.List;
 public class MLpipeline {
 
     private final ChatClient chatClient;
+    private Logger logger;
 
     @Autowired
     public MLpipeline(ChatClient.Builder builder) {
@@ -96,7 +99,8 @@ public class MLpipeline {
     public ClassificationDetailsDto update(Report r) {
         try {
             String instructions = generatePrompt(r);
-            return chatClient.prompt()
+            logger.info(instructions);
+            ClassificationDetailsDto c = chatClient.prompt()
                     .user(u -> {
                         // A. Add the text prompt first
                         u.text(instructions);
@@ -118,6 +122,9 @@ public class MLpipeline {
                     })
                     .call()
                     .entity(ClassificationDetailsDto.class);
+
+            logger.info(c.toString());
+            return c;
 
         } catch (Exception e) {
             throw new RuntimeException("AI Processing Failed: " + e.getMessage());

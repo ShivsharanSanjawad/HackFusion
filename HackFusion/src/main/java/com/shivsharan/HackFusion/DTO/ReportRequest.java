@@ -9,6 +9,7 @@ import java.util.UUID;
 @Data
 public class ReportRequest {
     UUID uid;
+    String username;
     LocalDate issue_since;
     String description;
     double lat;
