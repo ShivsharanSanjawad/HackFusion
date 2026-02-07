@@ -1,8 +1,8 @@
-import React, { useRef, Suspense } from 'react';
+import React, { useRef, Suspense, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {ArrowRight,Zap,Droplets,Construction,Trash2,Lightbulb,Shield,Users,Clock,
-  CheckCircle2,TrendingUp,MapPin,ThumbsUp,BarChart3,Award,} from 'lucide-react';
+  CheckCircle2,TrendingUp,MapPin,ThumbsUp,BarChart3,Award,AlertCircle,} from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { GlassCard, HexagonCard, FloatingActionButton } from '@/components/ui/cards';
@@ -216,6 +216,14 @@ function LiveMapSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
   const { incidents, upvoteIncident } = useIncidents();
+  const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
+
+  const handleUpvote = (incidentId: string) => {
+    if (!upvotedIncidents.has(incidentId)) {
+      setUpvotedIncidents(new Set([...upvotedIncidents, incidentId]));
+      upvoteIncident(incidentId);
+    }
+  };
 
   return (
     <section ref={ref} id="map" className="py-20 relative">
@@ -260,7 +268,8 @@ function LiveMapSection() {
               key={incident.id}
               incident={incident}
               delay={0.5 + index * 0.1}
-              onUpvote={() => upvoteIncident(incident.id)}
+              onUpvote={() => handleUpvote(incident.id)}
+              hasUpvoted={upvotedIncidents.has(incident.id)}
             />
           ))}
         </motion.div>
@@ -273,6 +282,49 @@ function LiveMapSection() {
 function StatsSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
+  const [stats, setStats] = useState({
+    reportsThisWeek: 0,
+    totalResolved: 0,
+    avgResolutionTimeInDays: 0,
+    totalUnresolved: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('http://localhost:8080/getStats', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setStats({
+          reportsThisWeek: data.reportsThisWeek || 0,
+          totalResolved: data.totalResolved || 0,
+          avgResolutionTimeInDays: data.avgResolutionTimeInDays || 0,
+          totalUnresolved: data.totalUnresolved || 0,
+        });
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load stats');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <section ref={ref} id="stats" className="py-20 bg-gradient-hero">
@@ -293,33 +345,54 @@ function StatsSection() {
 
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <StatCard
-            title="Active Incidents"
-            value={dashboardStats.totalActiveIncidents}
-            icon={<MapPin className="w-5 h-5" />}
-            delay={0.1}
-          />
-          <StatCard
-            title="Resolved This Week"
-            value={dashboardStats.resolvedThisWeek}
-            trend={{ value: 12, positive: true }}
-            icon={<CheckCircle2 className="w-5 h-5" />}
-            delay={0.2}
-          />
-          <StatCard
-            title="Avg. Resolution Time"
-            value={dashboardStats.avgResolutionTime}
-            suffix="h"
-            icon={<Clock className="w-5 h-5" />}
-            delay={0.3}
-          />
-          <StatCard
-            title="Citizen Satisfaction"
-            value={dashboardStats.citizenSatisfaction}
-            suffix="%"
-            icon={<ThumbsUp className="w-5 h-5" />}
-            delay={0.4}
-          />
+          {error ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={isInView ? { opacity: 1 } : {}}
+              className="col-span-full glass-card p-6 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-600 dark:text-red-400">Error loading statistics</h3>
+                <p className="text-sm text-red-500 dark:text-red-300">{error}</p>
+              </div>
+            </motion.div>
+          ) : loading ? (
+            <>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="glass-card p-6 rounded-lg h-32 animate-pulse bg-muted" />
+              ))}
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Reports This Week"
+                value={stats.reportsThisWeek}
+                icon={<MapPin className="w-5 h-5" />}
+                delay={0.1}
+              />
+              <StatCard
+                title="Total Resolved"
+                value={stats.totalResolved}
+                trend={{ value: 12, positive: true }}
+                icon={<CheckCircle2 className="w-5 h-5" />}
+                delay={0.2}
+              />
+              <StatCard
+                title="Avg. Resolution Time"
+                value={stats.avgResolutionTimeInDays}
+                suffix=" days"
+                icon={<Clock className="w-5 h-5" />}
+                delay={0.3}
+              />
+              <StatCard
+                title="Unresolved Issues"
+                value={stats.totalUnresolved}
+                icon={<AlertCircle className="w-5 h-5" />}
+                delay={0.4}
+              />
+            </>
+          )}
         </div>
 
         {/* Department Leaderboard */}

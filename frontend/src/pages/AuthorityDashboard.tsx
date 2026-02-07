@@ -210,37 +210,164 @@ export default function AuthorityDashboard() {
           </div>
         </motion.div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricWidget
-            id="critical"
-            title="Critical Issues"
-            value={analytics.critical}
-            icon={AlertTriangle}
-            trend="Requires immediate attention"
-          />
-          <MetricWidget
-            id="high"
-            title="High Priority"
-            value={analytics.high}
-            icon={TrendingUp}
-            trend="Next in queue"
-          />
-          <MetricWidget
-            id="inProgress"
-            title="In Progress"
-            value={analytics.inProgress}
-            icon={Clock}
-            trend="Currently being handled"
-          />
-          <MetricWidget
-            id="resolved"
-            title="Resolved This Month"
-            value={analytics.resolved}
-            icon={CheckCircle2}
-            trend="Completed successfully"
-          />
+        {/* Metrics Grid - Redesigned */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+  {/* Critical Issues - Red Theme */}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4 }}
+    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+    className="relative group"
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-red-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+    <div className="relative glass-card p-3 rounded-2xl border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+          <AlertTriangle className="w-6 h-6 text-red-500" />
         </div>
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="w-2 h-2 rounded-full bg-red-500"
+        />
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground font-medium">Critical Issues</p>
+        <div className="flex items-end gap-2">
+          <span className="text-3xl font-bold">{analytics.critical}</span>
+          <span className="text-red-500 text-xs font-semibold mb-1">URGENT</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Requires immediate attention</p>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500/0 via-red-500/50 to-red-500/0 rounded-b-2xl" />
+    </div>
+  </motion.div>
+
+  {/* High Priority - Orange Theme */}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay: 0.1 }}
+    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+    className="relative group"
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+    <div className="relative glass-card p-3 rounded-2xl border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 rounded-xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+          <TrendingUp className="w-6 h-6 text-orange-500" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground font-medium">High Priority</p>
+        <div className="flex items-end gap-2">
+          <span className="text-3xl font-bold">{analytics.high}</span>
+          <span className="text-orange-500 text-xs font-semibold mb-1">HIGH</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Next in queue</p>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500/0 via-orange-500/50 to-orange-500/0 rounded-b-2xl" />
+    </div>
+  </motion.div>
+
+  {/* In Progress - Blue Theme */}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay: 0.2 }}
+    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+    className="relative group"
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+    <div className="relative glass-card p-3 rounded-2xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+          <Clock className="w-6 h-6 text-blue-500" />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground font-medium">In Progress</p>
+        <div className="flex items-end gap-2">
+          <span className="text-3xl font-bold">{analytics.inProgress}</span>
+          <span className="text-blue-500 text-xs font-semibold mb-1">ACTIVE</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Currently being handled</p>
+      </div>
+      <motion.div 
+        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 rounded-b-2xl"
+        animate={{ 
+          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+        }}
+        transition={{ duration: 3, repeat: Infinity }}
+        style={{ backgroundSize: '200% 100%' }}
+      />
+    </div>
+  </motion.div>
+
+  {/* Resolved - Green Theme */}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay: 0.3 }}
+    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+    className="relative group"
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+    <div className="relative glass-card p-3 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all duration-300 overflow-hidden">
+      <div className="flex items-start justify-between mb-4">
+        <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+          <CheckCircle2 className="w-6 h-6 text-green-500" />
+        </div>
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 1] }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+        >
+          <CheckCircle2 className="w-4 h-4 text-green-500" />
+        </motion.div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground font-medium">Resolved This Month</p>
+        <div className="flex items-end gap-2">
+          <span className="text-3xl font-bold">{analytics.resolved}</span>
+          <span className="text-green-500 text-xs font-semibold mb-1">✓ DONE</span>
+        </div>
+        <p className="text-xs text-muted-foreground">Completed successfully</p>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500/0 via-green-500/50 to-green-500/0 rounded-b-2xl" />
+      
+      {/* Celebration particles on hover */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        whileHover={{ opacity: 1 }}
+      >
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-green-500 rounded-full"
+            style={{
+              left: `${20 + i * 15}%`,
+              top: '50%',
+            }}
+            animate={{
+              y: [0, -30, -60],
+              opacity: [0, 1, 0],
+              scale: [0, 1, 0.5],
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              delay: i * 0.2,
+              repeatDelay: 1,
+            }}
+          />
+        ))}
+      </motion.div>
+    </div>
+  </motion.div>
+</div>
 
         {/* Advanced Filtering */}
         <motion.div
