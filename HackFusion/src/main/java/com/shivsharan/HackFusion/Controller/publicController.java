@@ -16,6 +16,6 @@ public class publicController {
     @GetMapping("/getStat")
     public ResponseEntity getStats(){
         reportService3.getStats();
-        return ResponseEntity.ok().body();
+        return ResponseEntity.ok().body("Hello");
     }
 }

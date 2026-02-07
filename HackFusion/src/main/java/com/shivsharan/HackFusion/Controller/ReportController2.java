@@ -29,7 +29,7 @@ public class ReportController2 {
         reportService3.getDepartmentsRankWise();
         return ResponseEntity.ok().build() ;
     }
-    @GetMapping("/getReport")
+    @GetMapping("/getPDFReport")
     public ResponseEntity getPDFReport(@RequestParam UUID reportID){
         reportService3.getPDFReport(reportID);
         return ResponseEntity.ok().build() ;
