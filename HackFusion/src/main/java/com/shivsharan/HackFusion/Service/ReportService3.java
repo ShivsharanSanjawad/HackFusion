@@ -27,6 +27,6 @@ public class ReportService3 {
     }
     public void getStats(){
         // weekly number of reports issued
-        // number of the reports resolved 
+        // number of the reports resolved
     }
 }
