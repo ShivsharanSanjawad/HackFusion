@@ -11,7 +11,6 @@ import {
   Users, 
   Briefcase, 
   Wrench,
-  Github,
   Chrome,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -335,14 +334,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="mt-6 gap-4">
               <Button variant="outline" className="w-full" type="button">
                 <Chrome className="w-5 h-5 mr-2" />
                 Google
-              </Button>
-              <Button variant="outline" className="w-full" type="button">
-                <Github className="w-5 h-5 mr-2" />
-                GitHub
               </Button>
             </div>
           </div>

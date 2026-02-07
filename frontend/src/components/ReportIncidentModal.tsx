@@ -57,6 +57,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
     category: '',
     severity: 'high',
     locationAddress: '',
+    sinceDate: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -166,6 +167,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
       category: '',
       severity: 'high',
       locationAddress: '',
+      sinceDate: '',
     });
     setErrors({});
   };
@@ -320,6 +322,24 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
                     <p className="text-xs text-danger">{errors.location}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Since Date */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  When did the issue start?
+                </label>
+                <Input
+                  type="date"
+                  value={formData.sinceDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sinceDate: e.target.value })
+                  }
+                  className={errors.sinceDate ? 'border-danger' : ''}
+                />
+                {errors.sinceDate && (
+                  <p className="text-xs text-danger mt-1">{errors.sinceDate}</p>
+                )}
               </div>
             </motion.div>
           )}

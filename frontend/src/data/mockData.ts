@@ -143,6 +143,15 @@ export const mockUsers: User[] = [
     phone: '+91 98765 43213',
     createdAt: '2023-10-15T10:30:00Z',
   },
+  {
+    id: 'staff-2',
+    name: 'Ramesh Mehta',
+    email: 'ramesh.mehta@municipality.gov',
+    role: 'field-staff',
+    department: 'Water Supply',
+    phone: '+91 98765 43213',
+    createdAt: '2023-10-15T10:30:00Z',
+  },
 ];
 
 // Mock Departments

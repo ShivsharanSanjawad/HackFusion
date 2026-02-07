@@ -14,6 +14,7 @@ import SignupPage from "./pages/SignupPage";
 import CitizenDashboard from "./pages/CitizenDashboard";
 import AuthorityDashboard from "./pages/AuthorityDashboard";
 import FieldStaffDashboard from "./pages/FieldStaffDashboard";
+import MyReportsPage from "./pages/MyReportsPage";
 import MapViewPage from "./pages/MapViewPage";
 import NotFound from "./pages/NotFound";
 
@@ -73,6 +74,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['citizen']}>
             <CitizenDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-reports"
+        element={
+          <ProtectedRoute allowedRoles={['citizen']}>
+            <MyReportsPage />
           </ProtectedRoute>
         }
       />
