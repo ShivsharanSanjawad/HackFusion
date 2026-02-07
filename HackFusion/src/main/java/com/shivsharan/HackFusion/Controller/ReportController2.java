@@ -2,6 +2,8 @@ package com.shivsharan.HackFusion.Controller;
 
 import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
@@ -31,9 +33,13 @@ public class ReportController2 {
     }
     @GetMapping("/getPDFReport")
     public ResponseEntity getPDFReport(@RequestParam UUID reportID){
-        reportService3.getPDFReport(reportID);
-        return ResponseEntity.ok().build() ;
+        byte[] pdfBytes = reportService3.getPDFReport(reportID);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=issue_report.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
+
     @GetMapping("/getReport")
     public ResponseEntity getUpvotes(@RequestParam UUID reportID){
         reportService3.getCompleteReport(reportID);

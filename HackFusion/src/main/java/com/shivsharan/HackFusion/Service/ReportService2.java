@@ -10,6 +10,9 @@ import com.shivsharan.HackFusion.Repository.ReportRepository;
 import com.shivsharan.HackFusion.Repository.ReportStatusRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -25,8 +28,10 @@ public class ReportService2 {
     ReportStatusRepository reportStatusRepository;
     @Autowired
     OperatorsRepository operatorsRepository;
+    @Autowired
+    ReportService3 reportService3;
     @Transactional
-    public String closeReport(UUID reportId) {
+    public byte[] closeReport(UUID reportId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report with ID " + reportId + " not found"));
 
@@ -41,8 +46,7 @@ public class ReportService2 {
         reportStatusRepository.save(history);
 
         // Create PDF LINK and return it
-
-        return "no link created (PDF functionality doesnt exist";
+        return reportService3.getPDFReport(reportId);
     }
     public List<Report> getTasks(UUID workerId)
     {

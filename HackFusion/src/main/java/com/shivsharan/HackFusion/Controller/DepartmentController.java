@@ -11,6 +11,8 @@ import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.ReportService;
 import com.shivsharan.HackFusion.Service.ReportService2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
@@ -61,8 +63,11 @@ public class DepartmentController {
 
     @PutMapping("/closeReport")
     public ResponseEntity closeReport(@RequestBody UUID reportID){
-        String ret = reportService2.closeReport(reportID);
-        return ResponseEntity.ok().body(ret);
+        byte[] pdfBytes = reportService2.closeReport(reportID);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=issue_report.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 
 }
