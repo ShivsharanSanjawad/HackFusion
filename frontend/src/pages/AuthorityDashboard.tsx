@@ -14,13 +14,24 @@ import {
   BarChart3,
   CheckCircle2,
   Layers,
+  Building2,
+  UserCheck,
+  X,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents } from '@/contexts/IncidentContext';
-import { Incident, IncidentPriority, IncidentStatus, mockDepartments } from '@/data/mockData';
+import { Incident, IncidentPriority, IncidentStatus, mockDepartments, mockUsers } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
 interface FilterState {
@@ -28,6 +39,18 @@ interface FilterState {
   status: IncidentStatus | null;
   category: string | null;
   assignmentStatus: 'assigned' | 'unassigned' | null;
+}
+
+interface CollabModalState {
+  isOpen: boolean;
+  incident: Incident | null;
+  selectedDepartment: string | null;
+}
+
+interface AssignWorkerModalState {
+  isOpen: boolean;
+  incident: Incident | null;
+  selectedWorkers: string[];
 }
 
 export default function AuthorityDashboard() {
@@ -41,6 +64,16 @@ export default function AuthorityDashboard() {
     assignmentStatus: null,
   });
   const [expandedMetrics, setExpandedMetrics] = useState<string | null>(null);
+  const [collabModal, setCollabModal] = useState<CollabModalState>({
+    isOpen: false,
+    incident: null,
+    selectedDepartment: null,
+  });
+  const [assignWorkerModal, setAssignWorkerModal] = useState<AssignWorkerModalState>({
+    isOpen: false,
+    incident: null,
+    selectedWorkers: [],
+  });
 
   const userDepartment = user?.department;
   const departmentIncidents = incidents.filter(
@@ -444,17 +477,278 @@ export default function AuthorityDashboard() {
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Notification
               </Button>
-              <Button variant="outline" className="w-full">
-                <Users className="w-4 h-4 mr-2" />
-                Manage Team
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  if (filteredIncidents.length > 0) {
+                    setCollabModal({
+                      isOpen: true,
+                      incident: filteredIncidents[0],
+                      selectedDepartment: null,
+                    });
+                  }
+                }}
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                Collab with other depts
               </Button>
-              <Button variant="outline" className="w-full">
-                <Zap className="w-4 h-4 mr-2" />
-                Escalate Issues
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  if (filteredIncidents.length > 0) {
+                    setAssignWorkerModal({
+                      isOpen: true,
+                      incident: filteredIncidents[0],
+                      selectedWorkers: [],
+                    });
+                  }
+                }}
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Assign Workers
               </Button>
             </motion.div>
           </div>
         </div>
+
+        {/* Collab with other depts Modal */}
+        <Dialog open={collabModal.isOpen} onOpenChange={(open) => {
+          if (!open) {
+            setCollabModal({ isOpen: false, incident: null, selectedDepartment: null });
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Collaborate with Other Departments</DialogTitle>
+              <DialogDescription>
+                Select a department to collaborate on this incident
+              </DialogDescription>
+            </DialogHeader>
+            
+            {collabModal.incident && (
+              <div className="space-y-4">
+                {/* Incident Details */}
+                <div className="glass-card p-4 rounded-lg space-y-2 border border-border">
+                  <h4 className="font-semibold text-sm">{collabModal.incident.title}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {collabModal.incident.location.address}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span
+                      className={cn(
+                        'px-2 py-1 rounded-full text-xs font-medium text-white',
+                        `bg-gradient-to-r ${priorityColors[collabModal.incident.priority]}`
+                      )}
+                    >
+                      {collabModal.incident.priority}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {collabModal.incident.category}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Department Selection */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Available Departments</label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {mockDepartments.map((dept) => (
+                      <motion.div
+                        key={dept.id}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={() => setCollabModal({ ...collabModal, selectedDepartment: dept.id })}
+                        className={cn(
+                          "p-3 rounded-lg cursor-pointer border transition-all",
+                          collabModal.selectedDepartment === dept.id
+                            ? "bg-primary/10 border-primary shadow-glow"
+                            : "bg-card border-border hover:border-primary/50"
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-sm">{dept.name}</h5>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Head: {dept.head}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Staff: {dept.staffCount} | Score: {dept.performanceScore}%
+                            </p>
+                          </div>
+                          <div
+                            className={cn(
+                              "w-4 h-4 border-2 rounded transition-colors",
+                              collabModal.selectedDepartment === dept.id
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground"
+                            )}
+                          />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() =>
+                      setCollabModal({ isOpen: false, incident: null, selectedDepartment: null })
+                    }
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-primary hover:opacity-90"
+                    disabled={!collabModal.selectedDepartment}
+                    onClick={() => {
+                      if (collabModal.selectedDepartment) {
+                        const selectedDept = mockDepartments.find(
+                          (d) => d.id === collabModal.selectedDepartment
+                        );
+                        setCollabModal({ isOpen: false, incident: null, selectedDepartment: null });
+                      }
+                    }}
+                  >
+                    Send Request
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign Workers Modal */}
+        <Dialog open={assignWorkerModal.isOpen} onOpenChange={(open) => {
+          if (!open) {
+            setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] });
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assign Workers</DialogTitle>
+              <DialogDescription>
+                Select workers to assign to this incident
+              </DialogDescription>
+            </DialogHeader>
+
+            {assignWorkerModal.incident && (
+              <div className="space-y-4">
+                {/* Incident Details */}
+                <div className="glass-card p-4 rounded-lg space-y-2 border border-border">
+                  <h4 className="font-semibold text-sm">{assignWorkerModal.incident.title}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    {assignWorkerModal.incident.location.address}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span
+                      className={cn(
+                        'px-2 py-1 rounded-full text-xs font-medium text-white',
+                        `bg-gradient-to-r ${priorityColors[assignWorkerModal.incident.priority]}`
+                      )}
+                    >
+                      {assignWorkerModal.incident.priority}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {assignWorkerModal.incident.category}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Worker Selection */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Select Workers</label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {mockUsers
+                      .filter((u) => u.role === 'field-staff')
+                      .map((worker) => (
+                        <motion.div
+                          key={worker.id}
+                          whileHover={{ scale: 1.02 }}
+                          className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all cursor-pointer"
+                          onClick={() => {
+                            setAssignWorkerModal((prev) => ({
+                              ...prev,
+                              selectedWorkers: prev.selectedWorkers.includes(worker.id)
+                                ? prev.selectedWorkers.filter((id) => id !== worker.id)
+                                : [...prev.selectedWorkers, worker.id],
+                            }));
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Checkbox
+                              checked={assignWorkerModal.selectedWorkers.includes(worker.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setAssignWorkerModal((prev) => ({
+                                    ...prev,
+                                    selectedWorkers: [...prev.selectedWorkers, worker.id],
+                                  }));
+                                } else {
+                                  setAssignWorkerModal((prev) => ({
+                                    ...prev,
+                                    selectedWorkers: prev.selectedWorkers.filter(
+                                      (id) => id !== worker.id
+                                    ),
+                                  }));
+                                }
+                              }}
+                              className="mt-1"
+                            />
+                            <div className="flex-1">
+                              <h5 className="font-medium text-sm">{worker.name}</h5>
+                              <p className="text-xs text-muted-foreground">
+                                {worker.department}
+                              </p>
+                              {worker.phone && (
+                                <p className="text-xs text-muted-foreground">{worker.phone}</p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Selected Count */}
+                {assignWorkerModal.selectedWorkers.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 rounded-lg bg-primary/10 text-primary text-sm font-medium"
+                  >
+                    {assignWorkerModal.selectedWorkers.length} worker(s) selected
+                  </motion.div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() =>
+                      setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] })
+                    }
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 bg-gradient-primary hover:opacity-90"
+                    disabled={assignWorkerModal.selectedWorkers.length === 0}
+                    onClick={() => {
+                      setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] });
+                    }}
+                  >
+                    Assign Workers
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

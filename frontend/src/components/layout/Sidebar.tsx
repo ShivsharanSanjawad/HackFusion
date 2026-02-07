@@ -145,12 +145,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* User Section */}
       <div className="p-4 border-t border-sidebar-border space-y-3">
-        {/* Theme Toggle */}
-        <div className={cn('flex items-center', collapsed ? 'justify-center' : 'justify-between')}>
-          {!collapsed && <span className="text-xs text-sidebar-foreground/50">Theme</span>}
-          <ThemeToggle />
-        </div>
-
         {/* User Info */}
         {user && (
           <div className={cn(
@@ -217,6 +211,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <h2 className="text-lg font-display font-semibold">Dashboard</h2>
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <button className="relative p-2 rounded-xl hover:bg-muted transition-colors">
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-danger" />
