@@ -17,6 +17,7 @@ import FieldStaffDashboard from "./pages/FieldStaffDashboard";
 import MyReportsPage from "./pages/MyReportsPage";
 import { IncidentsPage } from "./pages/IncidentsPage";
 import MapViewPage from "./pages/MapViewPage";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -117,6 +118,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['citizen', 'authority', 'field-staff']}>
             <MapViewPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute allowedRoles={['citizen', 'authority', 'field-staff']}>
+            <Settings />
           </ProtectedRoute>
         }
       />
