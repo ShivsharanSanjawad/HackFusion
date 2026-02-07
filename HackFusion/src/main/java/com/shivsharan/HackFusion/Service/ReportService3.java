@@ -5,6 +5,7 @@ import com.shivsharan.HackFusion.Repository.ReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.print.Doc;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,9 @@ import java.util.UUID;
 public class ReportService3 {
     @Autowired
     ReportRepository reportRepository;
+
+    @Autowired
+    DocumentService documentService;
     public void reOpen(UUID reportId){
 
     }
@@ -22,8 +26,8 @@ public class ReportService3 {
         // not resolved and provide the avg resolution time
     }
 
-    public void getPDFReport(UUID reportId){
-        // you have the pdf_uri in Report Class
+    public byte[] getPDFReport(UUID reportId){
+        return documentService.generatePdfFromTemplate(reportId);
     }
     public void getCompleteReport(UUID reportId){
         // I want you to return entire Report Object
