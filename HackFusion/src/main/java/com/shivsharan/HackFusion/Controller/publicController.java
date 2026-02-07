@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.DTO.OverallStatsDTO;
 import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ public class publicController {
     ReportService3 reportService3 ;
     @GetMapping("/getStat")
     public ResponseEntity getStats(){
-        reportService3.getStats();
-        return ResponseEntity.ok().body("something");
+        OverallStatsDTO stats = reportService3.getStats();
+        return ResponseEntity.ok(stats);
     }
 }

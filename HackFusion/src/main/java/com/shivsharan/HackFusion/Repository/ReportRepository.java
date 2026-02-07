@@ -1,12 +1,15 @@
 package com.shivsharan.HackFusion.Repository;
 
 import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
+import com.shivsharan.HackFusion.DTO.OverallStatsDTO;
 import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
@@ -41,4 +44,24 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
         ORDER BY SUM(CASE WHEN r.status = 'RESOLVED' THEN 1 ELSE 0 END) DESC
     """)
     List<DepartmentRankDTO> getDepartmentsRankWise();
+
+    @Query("""
+        SELECT new com.shivsharan.HackFusion.DTO.OverallStatsDTO(
+            COUNT(CASE WHEN r.entryDate >= :weekStart THEN 1 ELSE 0 END),
+            SUM(CASE WHEN r.status = 'RESOLVED' THEN 1 ELSE 0 END),
+            SUM(CASE WHEN r.status <> 'RESOLVED' THEN 1 ELSE 0 END),
+            COUNT(r),
+            COALESCE(AVG(
+                CASE 
+                    WHEN r.status = 'RESOLVED' THEN 
+                        (SELECT CAST(FUNCTION('TIMESTAMPDIFF', DAY, r.entryDate, MAX(rs.date)) AS double)
+                         FROM ReportStatus rs 
+                         WHERE rs.reports.id = r.id AND rs.status = 'RESOLVED')
+                    ELSE NULL 
+                END
+            ), 0.0)
+        )
+        FROM Report r
+    """)
+    OverallStatsDTO getOverallStats(@Param("weekStart") LocalDate weekStart);
 }

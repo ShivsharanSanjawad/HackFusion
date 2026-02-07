@@ -1,12 +1,14 @@
 package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
+import com.shivsharan.HackFusion.DTO.OverallStatsDTO;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Repository.ReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.print.Doc;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,8 +40,10 @@ public class ReportService3 {
     {
         return reportRepository.findBySenders_Id(userId);
     }
-    public void getStats(){
+    public OverallStatsDTO getStats(){
         // weekly number of reports issued
         // number of the reports resolved
+        LocalDate weekStart = LocalDate.now().minusWeeks(1);
+        return reportRepository.getOverallStats(weekStart);
     }
 }
