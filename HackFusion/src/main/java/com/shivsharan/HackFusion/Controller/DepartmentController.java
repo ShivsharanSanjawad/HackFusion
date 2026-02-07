@@ -5,6 +5,7 @@ import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.ReportService;
 import com.shivsharan.HackFusion.Service.ReportService2;
 import org.springframework.beans.factory.annotation.Autowired;
