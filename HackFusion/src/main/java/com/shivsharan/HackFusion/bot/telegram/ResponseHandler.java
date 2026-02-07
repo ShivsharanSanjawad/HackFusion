@@ -74,7 +74,8 @@ public class ResponseHandler {
         long chatId = update.getMessage().getChatId();
         UserState currentState = chatStates.getOrDefault(chatId, UserState.START);
         Report report = reportDrafts.getOrDefault(chatId, new Report());
-        report.setMedia_url(new ArrayList<>());
+        if(report.getMedia_url() == null)
+            report.setMedia_url(new ArrayList<>());
 
         // Ignore commands if they interrupt the flow (optional)
         if (update.getMessage().hasText() && update.getMessage().getText().startsWith("/")) {
@@ -162,6 +163,10 @@ public class ResponseHandler {
                 break;
 
             case AWAITING_IMAGE:
+                // 1. Safety check
+                if (report.getMedia_url() == null) {
+                    report.setMedia_url(new ArrayList<>());
+                }
                 if (update.getMessage().hasPhoto()) {
                     List<PhotoSize> photos = update.getMessage().getPhoto();
                     String fileId = photos.stream()
@@ -170,20 +175,37 @@ public class ResponseHandler {
                             .getFileId();
 
                     String photoUrl = bot.getPhotoLink(fileId);
+
+                    // 2. Add to the list
                     report.getMedia_url().add(photoUrl);
 
-                } else if(report.getMedia_url().size() > 0) {
-                    finalizeAndSaveReport(chatId, report);
-                    chatStates.put(chatId, UserState.COMPLETED);
-                    chatStates.remove(chatId);
-                    reportDrafts.remove(chatId);
-                } else{
-                    silent.send("Please upload an image file to finalize the report.", chatId);
+                    // --- CRITICAL FIX START ---
+                    // You MUST save the updated object back to the DB map!
+                    reportDrafts.put(chatId, report);
+                    // --- CRITICAL FIX END ---
+
+                    int count = report.getMedia_url().size();
+                    silent.send("Photo " + count + " saved! Send more or type /done.", chatId);
+
+                }
+                else if (update.getMessage().hasText()) {
+                    if (report.getMedia_url().isEmpty()) {
+                        silent.send("⚠️ You must upload at least one photo before finishing.", chatId);
+                    } else {
+                        finalizeAndSaveReport(chatId, report);
+                        chatStates.put(chatId, UserState.COMPLETED);
+                        reportDrafts.remove(chatId);
+                        silent.send("Report submitted successfully!", chatId);
+                    }
+                } else {
+                    silent.send("Waiting for photos...", chatId);
                 }
                 break;
 
             case COMPLETED:
-                chatStates.put(chatId, UserState.START);
+                reportDrafts.remove(chatId);
+                chatStates.remove(chatId);
+                break;
             default:
                 silent.send("Session expired or invalid state. Type /start to begin.", chatId);
                 break;
