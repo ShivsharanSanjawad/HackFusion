@@ -636,7 +636,7 @@ export default function FieldStaffDashboard() {
                     <MapPinned className="w-4 h-4" />
                     Location Map
                   </h3>
-                  <IncidentMap incidents={[selectedIncident]} height="300px" />
+                  {/* <IncidentMap incidents={[selectedIncident]} height="300px" /> */}
                   <p className="text-xs text-muted-foreground mt-3 text-center">
                     {selectedIncident.location.address}
                   </p>
