@@ -1,85 +1,211 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
+import com.shivsharan.HackFusion.Model.Department;
+import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
+import com.shivsharan.HackFusion.Model.Report;
+import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Service.ReportService;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.Location;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import com.shivsharan.HackFusion.DTO.ReportRequest;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 public class ResponseHandler {
     private final SilentSender silent;
     private final Map<Long, UserState> chatStates;
-    private final IssueBot bot; // Reference to the main bot
+    private final Map<Long, Report> reportDrafts;
+    private final IssueBot bot;
+
+    // Services
+    private final DepartmentService departmentService;
+    private final ReportService reportService;
 
     public enum UserState {
-        START, AWAITING_NAME, AWAITING_LOCATION, AWAITING_IMAGE, COMPLETED
+        START,
+        AWAITING_DESCRIPTION,
+        AWAITING_DEPARTMENT,
+        AWAITING_ISSUE_SINCE,
+        AWAITING_LOCATION,
+        AWAITING_IMAGE,
+        COMPLETED
     }
 
-    // Constructor now accepts IssueBot
-    public ResponseHandler(SilentSender silent, DBContext db, IssueBot bot) {
+    // Constructor: Inject Services here to ensure they are not null
+    public ResponseHandler(SilentSender silent, DBContext db, IssueBot bot,
+                           DepartmentService departmentService, ReportService reportService) {
         this.silent = silent;
         this.chatStates = db.getMap("USER_STATES");
+        this.reportDrafts = new HashMap<>();
         this.bot = bot;
+        this.departmentService = departmentService;
+        this.reportService = reportService;
     }
 
+    // --- STEP 1: START ---
     public void replyToStart(long chatId) {
-        silent.send("Welcome! Let's register your civil issue. First, please enter your **Full Name**:", chatId);
-        chatStates.put(chatId, UserState.AWAITING_NAME);
+        silent.send("Welcome to the Civil Issue Reporting System.\n\nPlease providing a brief description of the issue.", chatId);
+        chatStates.put(chatId, UserState.AWAITING_DESCRIPTION);
+        reportDrafts.put(chatId, new Report());
     }
 
     public void handleUpdate(Update update) {
         long chatId = update.getMessage().getChatId();
         UserState currentState = chatStates.getOrDefault(chatId, UserState.START);
+        Report report = reportDrafts.getOrDefault(chatId, new Report());
+
+        // Ignore commands if they interrupt the flow (optional)
+        if (update.getMessage().hasText() && update.getMessage().getText().startsWith("/")) {
+            return;
+        }
 
         switch (currentState) {
-            case AWAITING_NAME:
+            // --- STEP 2: DESCRIPTION ---
+            case AWAITING_DESCRIPTION:
                 if (update.getMessage().hasText()) {
-                    String name = update.getMessage().getText();
-                    // Save name logic here...
-                    silent.send("Got it, " + name + ". Now, please send the **Location** of the issue:", chatId);
-                    chatStates.put(chatId, UserState.AWAITING_LOCATION);
+                    report.setDescription(update.getMessage().getText());
+
+                    silent.send("Description recorded. Please specify the Department responsible (e.g., Roads, Sanitation, Electrical).", chatId);
+
+                    reportDrafts.put(chatId, report);
+                    chatStates.put(chatId, UserState.AWAITING_DEPARTMENT);
                 } else {
-                    silent.send("Please provide a valid text name.", chatId);
+                    silent.send("Invalid input. Please provide a text description.", chatId);
                 }
                 break;
 
-            case AWAITING_LOCATION:
+            // --- STEP 3: DEPARTMENT ---
+            case AWAITING_DEPARTMENT:
                 if (update.getMessage().hasText()) {
-                    // Save location logic here...
-                    silent.send("Location received. Finally, please upload a **Photo** of the issue:", chatId);
-                    chatStates.put(chatId, UserState.AWAITING_IMAGE);
+                    String deptName = update.getMessage().getText();
+                    Department dept = departmentService.findByName(deptName);
+
+                    if (dept != null) {
+                        report.setDepartment(dept);
+                        silent.send("Department confirmed. Please enter the date since the issue has persisted (Format: YYYY-MM-DD).", chatId);
+
+                        reportDrafts.put(chatId, report);
+                        chatStates.put(chatId, UserState.AWAITING_ISSUE_SINCE);
+                    } else {
+                        silent.send("Department not found. Please ensure the name is correct and try again.", chatId);
+                    }
                 } else {
-                    silent.send("Please send the location as text.", chatId);
+                    silent.send("Please enter a valid department name.", chatId);
+                }
+                break;
+
+            // --- STEP 4: ISSUE SINCE (DATE) ---
+            case AWAITING_ISSUE_SINCE:
+                if (update.getMessage().hasText()) {
+                    try {
+                        LocalDate date = LocalDate.parse(update.getMessage().getText());
+                        report.setIssueSince(date);
+
+                        silent.send("Date recorded. Please share the precise location of the issue using the attachment menu.", chatId);
+
+                        reportDrafts.put(chatId, report);
+                        chatStates.put(chatId, UserState.AWAITING_LOCATION);
+                    } catch (DateTimeParseException e) {
+                        silent.send("Invalid date format. Please use YYYY-MM-DD (e.g., 2024-05-20).", chatId);
+                    }
+                } else {
+                    silent.send("Please enter the date in YYYY-MM-DD format.", chatId);
+                }
+                break;
+
+            // --- STEP 5: LOCATION ---
+            case AWAITING_LOCATION:
+                if (update.getMessage().hasLocation()) {
+                    Location loc = update.getMessage().getLocation();
+                    report.setLat(loc.getLatitude());
+                    report.setLon(loc.getLongitude());
+                    proceedToImage(chatId, report);
+                }
+                else if (update.getMessage().hasText()) {
+                    // Fallback for text location
+                    report.setLat(0.0);
+                    report.setLon(0.0);
+                    // Append address to description since we lack coordinates
+                    String currentDesc = report.getDescription();
+                    report.setDescription(currentDesc + " [Address: " + update.getMessage().getText() + "]");
+
+                    silent.send("Location text recorded. Note: GPS coordinates are preferred for accuracy.", chatId);
+                    proceedToImage(chatId, report);
+                } else {
+                    silent.send("Please share a location via the attachment menu or type the address.", chatId);
                 }
                 break;
 
             case AWAITING_IMAGE:
                 if (update.getMessage().hasPhoto()) {
-                    // 1. Get the largest photo (Telegram sends multiple sizes)
                     List<PhotoSize> photos = update.getMessage().getPhoto();
                     String fileId = photos.stream()
                             .max(Comparator.comparing(PhotoSize::getFileSize))
                             .orElse(photos.get(0))
                             .getFileId();
 
-                    // 2. Call the bot to get the actual Link
-                    String link = bot.getPhotoLink(fileId);
+                    String photoUrl = bot.getPhotoLink(fileId);
 
-                    // 3. Send link back to user (or store in DB)
-                    silent.send("Registration complete! Link generated: " + link, chatId);
+                    finalizeAndSaveReport(chatId, report, photoUrl);
 
-                    // Clear state or set to completed
-                    chatStates.put(chatId, UserState.COMPLETED);
+                    chatStates.remove(chatId);
+                    reportDrafts.remove(chatId);
                 } else {
-                    silent.send("That wasn't a photo. Please upload an image of the issue.", chatId);
+                    silent.send("Please upload an image file to finalize the report.", chatId);
                 }
                 break;
 
             default:
-                silent.send("Type /start to begin a new report.", chatId);
+                silent.send("Session expired or invalid state. Type /start to begin.", chatId);
                 break;
         }
+    }
+
+    private void proceedToImage(long chatId, Report report) {
+        reportDrafts.put(chatId, report);
+        silent.send("Location recorded. Finally, please upload a photo of the issue.", chatId);
+        chatStates.put(chatId, UserState.AWAITING_IMAGE);
+    }
+
+    private void finalizeAndSaveReport(long chatId, Report report, String photoUrl) {
+        try {
+            ReportRequest reportRequest = new ReportRequest();
+
+            reportRequest.setUid(null);
+            reportRequest.setIssue_since(report.getIssueSince());
+            reportRequest.setDescription(report.getDescription());
+            reportRequest.setLat(report.getLat());
+            reportRequest.setLon(report.getLon());
+            reportRequest.setMedia_url(Collections.singletonList(photoUrl));
+            reportRequest.setDepartment_id(null);
+
+            reportService.save(reportRequest);
+
+
+            String confirmation = String.format(
+                    "Report Registered Successfully.\n\nID: %s\nDepartment: %s\nStatus: %s\nView Image: %s",
+                    report.getId() != null ? report.getId().toString() : "Pending",
+                    report.getDepartment().getName(),
+                    report.getStatus(),
+                    photoUrl
+            );
+            silent.send(confirmation, chatId);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            silent.send("An error occurred while saving your report. Please contact support.", chatId);
+        }
+    }
+
+    // TODO: You must implement this based on your User/Operator Service
+    private Operators getOrCreateOperator(long telegramChatId) {
+        // Example logic:
+        // return operatorRepository.findByTelegramId(telegramChatId)
+        //         .orElseGet(() -> operatorService.createGuestUser(telegramChatId));
+        return null; // <-- REPLACE THIS with actual logic or the save will fail
     }
 }

@@ -1,5 +1,7 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
+import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -17,18 +19,29 @@ public class IssueBot extends AbilityBot {
 
     private final ResponseHandler responseHandler;
 
+    // 1. Declare services to hold the injected instances
+    private final DepartmentService departmentService;
+    private final ReportService reportService;
+
     @Autowired
-    public IssueBot(Environment env) {
-        // Passing Bot Token and Username from properties
+    public IssueBot(Environment env,
+                    DepartmentService departmentService,
+                    ReportService reportService) {
+        // 2. Pass Bot Token and Username
         super(env.getProperty("TelegramBot"), "CivilIssueRegister");
 
-        // PASS 'this' TO THE HANDLER so it can call methods on this bot
-        this.responseHandler = new ResponseHandler(silent, db, this);
+        // 3. Save the services
+        this.departmentService = departmentService;
+        this.reportService = reportService;
+
+        // 4. Initialize Handler with ALL 5 required arguments
+        // (silent, db, this, departmentService, reportService)
+        this.responseHandler = new ResponseHandler(silent, db, this, departmentService, reportService);
     }
 
     @Override
     public long creatorId() {
-        return 1L; // Replace with your actual Telegram User ID
+        return 1L;
     }
 
     public Ability startCommand() {
@@ -43,22 +56,20 @@ public class IssueBot extends AbilityBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        // Must call super to let AbilityBot handle internal states/claims
         super.onUpdateReceived(update);
-
+        // Forward updates to the handler
         if (update.hasMessage()) {
             responseHandler.handleUpdate(update);
         }
     }
 
-    // This method generates the temporary download link
     public String getPhotoLink(String fileId) {
         try {
             GetFile getFileMethod = new GetFile();
             getFileMethod.setFileId(fileId);
             File file = execute(getFileMethod);
+            // Generates https://api.telegram.org/file/bot<token>/<path>
             return file.getFileUrl(getBotToken());
-
         } catch (TelegramApiException e) {
             e.printStackTrace();
             return "Error retrieving file url";

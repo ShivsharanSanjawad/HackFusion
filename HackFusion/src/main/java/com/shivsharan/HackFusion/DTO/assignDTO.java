@@ -1,7 +1,9 @@
 package com.shivsharan.HackFusion.DTO;
 
-import java.util.UUID;
+import lombok.Data;
 
+import java.util.UUID;
+@Data
 public class assignDTO {
     public UUID reportID ;
     public UUID departmentID ;

@@ -1,7 +1,13 @@
 package com.shivsharan.HackFusion.Controller;
 
 import com.shivsharan.HackFusion.DTO.assignDTO;
+import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
+import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.ReportService;
 import com.shivsharan.HackFusion.Service.ReportService2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +26,14 @@ public class DepartmentController {
     ReportService reportService ;
     @Autowired
     ReportService2 reportService2 ;
+    @Autowired
+    DepartmentService departmentService;
+
+    @GetMapping("/getID")
+    public ResponseEntity getReports(@RequestParam String name){
+        UUID ret = departmentService.findByName(name).getId();
+        return ResponseEntity.ok().body(ret);
+    }
 
     @GetMapping("/getReports")
     public ResponseEntity getReports(@RequestParam UUID departmentid){
@@ -29,8 +43,8 @@ public class DepartmentController {
 
     @GetMapping("/getWorkers")
     public ResponseEntity getWorkers(@RequestParam UUID departmentID){
-        reportService.getWorkers(departmentID);
-        return ResponseEntity.ok().body("LIST OF WORKERS OF DEPARTMENT");
+        List<Operators> ret = reportService.getWorkers(departmentID);
+        return ResponseEntity.ok().body(ret);
     }
 
     @PutMapping("/assignWorkers")
@@ -41,14 +55,14 @@ public class DepartmentController {
 
     @GetMapping("/getReportStatus")
     public ResponseEntity reportStatus(@RequestParam UUID reportid){
-        reportService.getReportStatus(reportid) ;
-        return ResponseEntity.ok().body("Jell");
+        List<ReportStatus> ret = reportService.getReportStatus(reportid) ;
+        return ResponseEntity.ok().body(ret);
     }
 
     @PutMapping("/closeReport")
     public ResponseEntity closeReport(@RequestBody UUID reportID){
-        reportService2.closeReport(reportID);
-        return ResponseEntity.ok().body("CLOSE THE REPORT");
+        String ret = reportService2.closeReport(reportID);
+        return ResponseEntity.ok().body(ret);
     }
 
 }

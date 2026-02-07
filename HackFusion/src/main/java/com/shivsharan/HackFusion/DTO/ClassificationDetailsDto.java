@@ -1,4 +1,4 @@
-package com.shivsharan.HackFusion.dto;
+package com.shivsharan.HackFusion.DTO;
 
 public class ClassificationDetailsDto {
     private String finalDepartment;

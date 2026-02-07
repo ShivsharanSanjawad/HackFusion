@@ -1,7 +1,7 @@
 package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.Model.Report;
-import com.shivsharan.HackFusion.dto.ClassificationDetailsDto;
+import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -103,8 +103,8 @@ public class MLpipeline {
 
                         // B. Loop through all photo URLs in the report
                         // Assuming r.getPhotoUrls() returns a List<String>
-                        if (r.getMediaUrl() != null) {
-                            for (String urlString : r.getMediaUrl()) {
+                        if (r.getMedia_url() != null) {
+                            for (String urlString : r.getMedia_url()) {
                                 try {
                                     URL url = new URL(urlString);
                                     // Attach each image as a separate media part
