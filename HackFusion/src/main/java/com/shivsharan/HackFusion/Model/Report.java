@@ -3,6 +3,7 @@ package com.shivsharan.HackFusion.Model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -29,7 +30,7 @@ public class Report {
     private LocalDate issueSince;
 
     @Column(name = "media_url")
-    private String mediaUrl;
+    private List<String> mediaUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")

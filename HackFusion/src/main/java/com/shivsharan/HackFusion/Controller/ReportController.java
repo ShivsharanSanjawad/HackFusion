@@ -3,6 +3,7 @@ package com.shivsharan.HackFusion.Controller;
 import com.google.j2objc.annotations.AutoreleasePool;
 import com.shivsharan.HackFusion.DTO.ReportRequest;
 import com.shivsharan.HackFusion.Model.Report;
+import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.MLpipeline;
 import com.shivsharan.HackFusion.Service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -32,8 +34,8 @@ public class ReportController {
 
     @GetMapping("/getReportStatus")
     public ResponseEntity reportStatus(@RequestParam UUID reportid){
-        reportService.getReportStatus(reportid) ;
-        return ResponseEntity.ok().body("Jell");
+        List<ReportStatus> ret = reportService.getReportStatus(reportid) ;
+        return ResponseEntity.ok().body(ret);
     }
 
 

@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ReportStatusRepository extends JpaRepository<ReportStatus, UUID> {
-    List<ReportStatus> findByReportIdOrderByDateDesc(UUID reportId);
+    List<ReportStatus> findByReports_IdOrderByDateDesc(UUID reportId);
 }

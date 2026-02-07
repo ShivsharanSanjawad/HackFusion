@@ -1,6 +1,7 @@
 package com.shivsharan.HackFusion.Controller;
 
 import com.shivsharan.HackFusion.DTO.assignDTO;
+import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.ReportService;
 import com.shivsharan.HackFusion.Service.ReportService2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -21,8 +23,8 @@ public class DepartmentController {
 
     @GetMapping("/getReports")
     public ResponseEntity getReports(@RequestParam UUID departmentid){
-        reportService.getReports(departmentid);
-        return ResponseEntity.ok().body("LIST OF REPORTS OF DEPARTMENT");
+        List<Report> ret =  reportService.getReports(departmentid);
+        return ResponseEntity.ok().body(ret);
     }
 
     @GetMapping("/getWorkers")
