@@ -53,7 +53,7 @@ public class ReportService2 {
         return reportRepository.findByWorkersId(workerId);
     }
     @Transactional
-    public void updateStatus(Status dto) {
+    public boolean updateStatus(Status dto) {
         Report report = reportRepository.findById(dto.getReportID())
                 .orElseThrow(() -> new RuntimeException("Report with ID " + dto.getReportID() + " not found"));
 
@@ -66,6 +66,7 @@ public class ReportService2 {
         history.setStatus(dto.getNewStatus());
 
         reportStatusRepository.save(history);
+        return true ;
     }
     public String completeReportByWorker(CompletionDTO dto)
     {

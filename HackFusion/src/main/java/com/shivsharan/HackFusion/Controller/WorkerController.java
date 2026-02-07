@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -22,14 +23,14 @@ public class WorkerController {
 
     @GetMapping("/getTasks")
     public ResponseEntity getTasks(@RequestParam UUID workerId){
-        reportService2.getTasks(workerId);
-        return ResponseEntity.ok().body("ALL TASKS");
+        List<Report> ret = reportService2.getTasks(workerId);
+        return ResponseEntity.ok().body(ret);
     }
 
     @PostMapping("/updateStatus")
     public ResponseEntity updateStatus(@RequestBody Status dto){
-        reportService2.updateStatus(dto);
-        return ResponseEntity.ok().body("DONE ");
+        boolean ret = reportService2.updateStatus(dto);
+        return ResponseEntity.ok().body(ret);
     }
 
     @PostMapping("/completeReport")

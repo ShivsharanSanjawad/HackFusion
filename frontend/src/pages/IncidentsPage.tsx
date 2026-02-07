@@ -56,7 +56,7 @@ export function IncidentsPage() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch('https://localhost:8080/getAll', {
+        const response = await fetch('http://localhost:8080/getAll', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
