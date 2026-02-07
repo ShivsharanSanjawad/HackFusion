@@ -107,6 +107,7 @@ public class DocumentService {
             } else {
                 return null;
             }
+
         } catch (Exception e) {
             throw new RuntimeException("Error generating PDF", e);
         }
