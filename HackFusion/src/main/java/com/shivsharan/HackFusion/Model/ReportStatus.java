@@ -16,7 +16,7 @@ public class ReportStatus {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report_id", nullable = false)
-    private Report report;
+    private Report reports;
 
     @Column(name = "status_date")
     private LocalDate date;
