@@ -102,19 +102,20 @@ function UniqueMetricCard({
     </motion.div>
   );
 }
-interface Report {
+export interface Report {
   id: string; 
   senders: { id: string; name: string; role: string };
   entryDate: string;
   issueSince: string;
-  media_url: string[];
+  media_url: string[] | null;
   description: string;
   status: string;
   priority: number;
   upvotes: number;
   lat: number;
   lon: number;
-  pdf_url: string;
+  pdf_url: string | null;
+  department?: { id: string; name: string };
 }
 export default function CitizenDashboard() {
   const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
@@ -138,6 +139,7 @@ export default function CitizenDashboard() {
 
     // 2. Parse the body ONCE
     const data = await response.json(); 
+    console.log(data);
     const inProgress = data.filter(report => report.status === 'IN_PROGRESS');
     setInProgressReports(inProgress);
 
@@ -224,7 +226,7 @@ export default function CitizenDashboard() {
           />
         </div>
 
-        {/* Main Content Grid
+        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-4">
@@ -244,22 +246,24 @@ export default function CitizenDashboard() {
 
             <div className="space-y-4">
               {reports.length > 0 ? (
-                reports.map((incident, index) => (
-                  <IncidentCard
-                    key={incident.id}
-                    incident={incident}
-                    delay={index * 0.1}
-                    hasUpvoted={upvotedIncidents.has(incident.id)}
-                    onUpvote={() => {
-                      if (!upvotedIncidents.has(incident.id)) {
-                        setUpvotedIncidents(new Set([...upvotedIncidents, incident.id]));
-                        upvoteIncident(incident.id);
-                      }
-                    }}
-                  />
-                ))
+                reports
+                  .filter(r => r.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((report, index) => (
+                    <IncidentCard
+                      key={report.id}
+                      incident={report} // Passing the Report object directly
+                      delay={index * 0.1}
+                      hasUpvoted={upvotedIncidents.has(report.id)}
+                      onUpvote={() => {
+                        if (!upvotedIncidents.has(report.id)) {
+                          setUpvotedIncidents(new Set([...upvotedIncidents, report.id]));
+                          // upvoteIncident API call logic here
+                        }
+                      }}
+                    />
+                  ))
               ) : (
-                <div className="glass-card p-12 text-center">
+                <div className="glass-card p-12 text-center border border-dashed rounded-2xl">
                   <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="font-semibold mb-2">No incidents found</h3>
                   <p className="text-muted-foreground text-sm">
@@ -269,44 +273,29 @@ export default function CitizenDashboard() {
               )}
             </div>
           </div>
+
           <div className="space-y-6">
-            <div className="glass-card p-4">
+            <div className="glass-card p-4 rounded-2xl border bg-white/50 backdrop-blur-sm">
               <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-4 h-4 text-red-500" />
                 Your Area Map
               </h3>
-              <IncidentMap incidents={userIncidents} height="300px" />
+              {/* Passing the full reports array to the map */}
+              <IncidentMap incidents={reports} height="300px" />
             </div>
 
-            <div className="glass-card p-6">
-              <h3 className="font-semibold mb-4">Department Performance</h3>
-              <div className="space-y-4">
-                {mockDepartments.slice(0, 3).map((dept) => (
-                  <div key={dept.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{dept.shortCode}</p>
-                      <p className="text-xs text-muted-foreground">{dept.avgResolutionTime}h avg</p>
-                    </div>
-                    <div className="w-12 h-12 rounded-full relative flex items-center justify-center bg-muted">
-                      <span className="text-xs font-bold text-primary">{dept.performanceScore}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="mt-6 pt-6 border-t border-border"
+            <div className="glass-card p-6 rounded-2xl border bg-white/50 backdrop-blur-sm">
+              <h3 className="font-semibold mb-4 text-blue-600">Civic Support</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Need urgent assistance regarding your filed reports?
+              </p>
+              <Button 
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-200"
+                onClick={() => window.open('tel:+911234567890')}
               >
-                <Button 
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  onClick={() => window.open('tel:+911234567890')}
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Call Support Team
-                </Button>
-              </motion.div>
+                <Phone className="w-4 h-4 mr-2" />
+                Call Support Team
+              </Button>
             </div>
           </div>
         </div>
@@ -317,9 +306,8 @@ export default function CitizenDashboard() {
           onSubmit={(data) => {
             console.log('New incident report:', data);
             setShowReportModal(false);
-            // In a real app, this would submit to an API
           }}
-        /> */}
+        />
       </div>
     </DashboardLayout>
   );
