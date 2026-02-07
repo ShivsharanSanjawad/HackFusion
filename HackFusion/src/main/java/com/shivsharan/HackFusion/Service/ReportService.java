@@ -19,10 +19,12 @@ import java.util.UUID;
 public class ReportService {
     @Autowired
     ReportRepository reportRepository;
+    @Autowired
     ReportStatusRepository reportStatusRepository;
+    @Autowired
     OperatorsRepository operatorsRepository;
-    public Report save(ReportRequest dto){
-        return null ;
+    public Report save(ReportRequest dto) {
+        return null;
     }
     public List<Report> getReports(UUID departmentId)
     {
@@ -38,6 +40,6 @@ public class ReportService {
     }
     public void assignWorker(assignDTO dto)
     {
-        
+
     }
 }

@@ -11,7 +11,6 @@ import java.util.List;
 @Repository
 public interface ReportRepository extends JpaRepository<Report, UUID> {
     Optional<Report> findById(UUID id);
-    List<Report> findByOperator_Id(UUID id);
-    List<Report> findByStatus(String status);
     List<Report> findByDepartment_Id(UUID departmentId);
+    List<Report> findByWorkersId(UUID workerId);
 }

@@ -4,6 +4,7 @@ import com.shivsharan.HackFusion.DTO.assignDTO;
 import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.DepartmentService;
 import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.ReportService;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
+@Controller
 @RequestMapping("/department")
 public class DepartmentController {
     @Autowired
