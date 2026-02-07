@@ -288,42 +288,64 @@ function StatsSection() {
     avgResolutionTimeInDays: 0,
     totalUnresolved: 0,
   });
+  const [departments, setDepartments] = useState<Array<{
+    departmentName: string;
+    totalReports: number;
+    avgResolutionTimeInDays: number;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await fetch('http://localhost:8080/getStat', {
+        // Fetch stats
+        const statsResponse = await fetch('http://localhost:8080/getStat', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
         });
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
+        if (!statsResponse.ok) {
+          throw new Error(`Stats API Error: ${statsResponse.status}`);
         }
 
-        const data = await response.json();
+        const statsData = await statsResponse.json();
         setStats({
-          reportsThisWeek: data.reportsThisWeek || 0,
-          totalResolved: data.totalResolved || 0,
-          avgResolutionTimeInDays: data.avgResolutionTimeInDays || 0,
-          totalUnresolved: data.totalUnresolved || 0,
+          reportsThisWeek: statsData.reportsThisWeek || 0,
+          totalResolved: statsData.totalResolved || 0,
+          avgResolutionTimeInDays: statsData.avgResolutionTimeInDays || 0,
+          totalUnresolved: statsData.totalUnresolved || 0,
         });
+
+        // Fetch department rankings
+        const deptResponse = await fetch('http://localhost:8080/getDepartmentsRankWise', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!deptResponse.ok) {
+          throw new Error(`Departments API Error: ${deptResponse.status}`);
+        }
+
+        const deptData = await deptResponse.json();
+        const deptArray = Array.isArray(deptData) ? deptData : [];
+        setDepartments(deptArray.slice(0, 3));
       } catch (err) {
-        console.error('Failed to fetch stats:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load stats');
+        console.error('Failed to fetch data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchData();
   }, []);
 
   return (
@@ -406,52 +428,77 @@ function StatsSection() {
             <h3 className="text-xl font-display font-semibold">Department Performance</h3>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockDepartments.slice(0, 3).map((dept, index) => (
-              <motion.div
-                key={dept.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={isInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ delay: 0.6 + index * 0.1 }}
-                className="glass-card p-6 relative overflow-hidden"
-              >
-                {index === 0 && (
-                  <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-accent text-white text-xs font-semibold rounded-bl-xl">
-                    #1
+          {error ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={isInView ? { opacity: 1 } : {}}
+              className="glass-card p-6 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-600 dark:text-red-400">Error loading departments</h3>
+                <p className="text-sm text-red-500 dark:text-red-300">{error}</p>
+              </div>
+            </motion.div>
+          ) : loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="glass-card p-6 rounded-lg h-40 animate-pulse bg-muted" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {departments.map((dept, index) => (
+                <motion.div
+                  key={dept.departmentName}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={isInView ? { opacity: 1, x: 0 } : {}}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  className="glass-card p-6 relative overflow-hidden"
+                >
+                  {index === 0 && (
+                    <div className="absolute top-0 right-0 px-3 py-1 bg-gradient-accent text-white text-xs font-semibold rounded-bl-xl">
+                      #1
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="font-semibold">{dept.departmentName}</h4>
+                      <p className="text-sm text-muted-foreground">{dept.totalReports} reports</p>
+                    </div>
+                    <ProgressRing
+                      progress={92}
+                      size={60}
+                      color="success"
+                    />
                   </div>
-                )}
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="font-semibold">{dept.name}</h4>
-                    <p className="text-sm text-muted-foreground">{dept.staffCount} staff members</p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Total Reports</p>
+                      <p className="font-semibold">{dept.totalReports}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Avg. Res. Time</p>
+                      <p className="font-semibold">{dept.avgResolutionTimeInDays} days</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Rank</p>
+                      <p className="font-semibold">#{index + 1}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Score</p>
+                      <p className="font-semibold text-primary">92%</p>
+                    </div>
                   </div>
-                  <ProgressRing
-                    progress={dept.performanceScore}
-                    size={60}
-                    color={dept.performanceScore >= 90 ? 'success' : dept.performanceScore >= 80 ? 'primary' : 'warning'}
-                  />
+                </motion.div>
+              ))}
+              {departments.length === 0 && (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-muted-foreground">No department data available</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Active</p>
-                    <p className="font-semibold">{dept.activeIncidents}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Resolved</p>
-                    <p className="font-semibold">{dept.resolvedThisMonth}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Avg. Time</p>
-                    <p className="font-semibold">{dept.avgResolutionTime}h</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Score</p>
-                    <p className="font-semibold text-primary">{dept.performanceScore}%</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </motion.div>
       </div>
     </section>
