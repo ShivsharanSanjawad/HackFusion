@@ -56,11 +56,7 @@ public class IssueBot extends AbilityBot {
         try {
             GetFile getFileMethod = new GetFile();
             getFileMethod.setFileId(fileId);
-
-            // We use 'execute' (inherited from TelegramLongPollingBot) to call the API
             File file = execute(getFileMethod);
-
-            // Returns specific URL: https://api.telegram.org/file/bot<TOKEN>/<PATH>
             return file.getFileUrl(getBotToken());
 
         } catch (TelegramApiException e) {
