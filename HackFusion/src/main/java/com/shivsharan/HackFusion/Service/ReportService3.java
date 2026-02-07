@@ -4,6 +4,7 @@ import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
 import com.shivsharan.HackFusion.DTO.OverallStatsDTO;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Repository.ReportRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +20,14 @@ public class ReportService3 {
 
     @Autowired
     DocumentService documentService;
-    public void reOpen(UUID reportId){
+    public void reOpen(UUID reportId)
+    {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new EntityNotFoundException("Report not found with id: " + reportId));
 
+        report.setStatus("OPEN");
+
+        reportRepository.save(report);
     }
 
     public List<DepartmentRankDTO> getDepartmentsRankWise(){
