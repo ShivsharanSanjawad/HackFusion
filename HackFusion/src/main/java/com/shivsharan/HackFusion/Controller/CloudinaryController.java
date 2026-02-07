@@ -21,7 +21,7 @@ public class CloudinaryController {
         this.cloudinaryService = cloudinaryService;
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/cloudinary", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> UploadFile(@RequestParam("file") MultipartFile file,
                                              @RequestParam("folder_name") String folder_name){
         if(file.isEmpty()){

@@ -59,4 +59,27 @@ public class CloudinaryService{
             return null;
         }
     }
+
+    public String uploadFile(byte[] fileBytes, String fileName, String folderName) {
+        try {
+            Map params = ObjectUtils.asMap(
+                    "folder", folderName,
+                    "public_id", fileName, // Set the name explicitly (e.g., "report_123")
+                    "resource_type", "auto", // Important for PDFs!
+                    "overwrite", true
+            );
+
+            Map uploadResult = cloudinary.uploader().upload(fileBytes, params);
+
+            return (String) uploadResult.get("secure_url");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
+
+
 }

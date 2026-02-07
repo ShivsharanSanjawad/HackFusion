@@ -10,6 +10,7 @@ import com.shivsharan.HackFusion.Service.DepartmentService;
 import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.ReportService;
 import com.shivsharan.HackFusion.Service.ReportService2;
+import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -30,6 +31,9 @@ public class DepartmentController {
     ReportService2 reportService2 ;
     @Autowired
     DepartmentService departmentService;
+
+    @Autowired
+    ReportService3 reportService3;
 
     @GetMapping("/getID")
     public ResponseEntity getReports(@RequestParam String name){
@@ -62,12 +66,12 @@ public class DepartmentController {
     }
 
     @PutMapping("/closeReport")
-    public ResponseEntity closeReport(@RequestBody UUID reportID){
-        byte[] pdfBytes = reportService2.closeReport(reportID);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=issue_report.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdfBytes);
-    }
+    public ResponseEntity<String> closeReport(@RequestBody UUID reportID){
+        String link = reportService3.getPDFReport(reportID);
 
+        if (link == null || link.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(link);
+    }
 }

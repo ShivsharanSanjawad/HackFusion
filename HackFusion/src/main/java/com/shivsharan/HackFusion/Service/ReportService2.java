@@ -31,7 +31,7 @@ public class ReportService2 {
     @Autowired
     ReportService3 reportService3;
     @Transactional
-    public byte[] closeReport(UUID reportId) {
+    public String closeReport(UUID reportId) {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report with ID " + reportId + " not found"));
 
