@@ -1,17 +1,10 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
-import com.shivsharan.HackFusion.Model.Department;
 import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
 import com.shivsharan.HackFusion.Model.Report;
-import com.shivsharan.HackFusion.Repository.OperatorsRepository;
 import com.shivsharan.HackFusion.Service.DepartmentService;
 import com.shivsharan.HackFusion.Service.OperatorsService;
 import com.shivsharan.HackFusion.Service.ReportService;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.objects.Location;
@@ -102,8 +95,7 @@ public class ResponseHandler {
 //
 //                    if (dept != null) {
                         report.setDepartment(null);
-                        silent.send("Department confirmed. Please enter the date since the issue has persisted (Format: YYYY-MM-DD).", chatId);
-//
+                        silent.send("Department confirmed. Please enter the number of days since the issue has persisted (Format: Number).", chatId);
                         reportDrafts.put(chatId, report);
                         chatStates.put(chatId, UserState.AWAITING_ISSUE_SINCE);
 //                    } else {
@@ -118,7 +110,9 @@ public class ResponseHandler {
             case AWAITING_ISSUE_SINCE:
                 if (update.getMessage().hasText()) {
                     try {
-                        LocalDate date = LocalDate.parse(update.getMessage().getText());
+                        LocalDate date = LocalDate.now();
+                        int noOfDays = Integer.parseInt(update.getMessage().getText());
+                        date = date.minusDays(noOfDays);
                         report.setIssueSince(date);
 
                         silent.send("Date recorded. Please share the precise location of the issue using the attachment menu.", chatId);
