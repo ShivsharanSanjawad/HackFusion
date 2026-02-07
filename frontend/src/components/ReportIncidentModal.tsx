@@ -23,12 +23,12 @@ import { IncidentMap } from '@/components/IncidentMap';
 import { cn } from '@/lib/utils';
 
 const categories = [
-  { id: 'BMC', label: 'BMC', icon: Zap, color: 'text-yellow-500' },
-  { id: 'MMRDA', label: 'MMRDA', icon: Droplets, color: 'text-blue-500' },
-  { id: 'MMRCL', label: 'MMRCL', icon: Construction, color: 'text-orange-500' },
-  { id: 'BEST', label: 'BEST', icon: Trash2, color: 'text-green-500' },
-  { id: 'Police Department', label: 'Police Department', icon: Lightbulb, color: 'text-purple-500' },
-  { id: 'Public Works Department', label: 'Public Works Department', icon: Zap, color: 'text-blue-300' },
+  { id: '066af557-295a-42a9-981e-44a4d9e53cc0', label: 'BMC', icon: Zap, color: 'text-yellow-500' },
+  { id: '0800c6f9-a50c-486a-9ac3-df5cc2d8d706', label: 'MMRDA', icon: Droplets, color: 'text-blue-500' },
+  { id: 'd4631ade-0722-4ade-a7a7-92ba00a28dcc', label: 'MMRCL', icon: Construction, color: 'text-orange-500' },
+  { id: 'bfced05c-3781-467f-8b27-ee288b1ecc61', label: 'BEST', icon: Trash2, color: 'text-green-500' },
+  { id: '13bbbd9f-9b56-4135-99fe-b04bee2db5b7', label: 'Police Department', icon: Lightbulb, color: 'text-purple-500' },
+  { id: 'de61431b-bb6b-4e92-a918-fd5136b6b0b1', label: 'Public Works Department', icon: Zap, color: 'text-blue-300' },
 ];
 
 const severities = [
