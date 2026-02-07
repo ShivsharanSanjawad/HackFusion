@@ -74,6 +74,16 @@
 		</dependency>
 		<dependency>
 			<groupId>org.telegram</groupId>
+			<artifactId>telegrambots-springboot-longpolling-starter</artifactId>
+			<version>9.2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.telegram</groupId>
+			<artifactId>telegrambots-client</artifactId>
+			<version>9.2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.telegram</groupId>
 			<artifactId>telegrambots-spring-boot-starter</artifactId>
 			<version>6.7.0</version>
 		</dependency>
@@ -81,6 +91,11 @@
 			<groupId>org.telegram</groupId>
 			<artifactId>telegrambots-abilities</artifactId>
 			<version>6.7.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.telegram</groupId>
+			<artifactId>telegrambots-meta</artifactId>
+			<version>6.8.0</version>
 		</dependency>
 	</dependencies>
 
