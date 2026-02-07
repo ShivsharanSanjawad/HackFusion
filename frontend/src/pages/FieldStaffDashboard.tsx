@@ -99,6 +99,9 @@ export default function FieldStaffDashboard() {
         const response = await fetch('http://localhost:8080/worker/completeReport', {
           method: 'POST',
           headers: {
+            'X-User-Id': '123', 
+            'X-Username': 'venkat', 
+            'X-User-Type': 'Staff',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
@@ -121,6 +124,9 @@ export default function FieldStaffDashboard() {
         const response = await fetch('http://localhost:8080/worker/updateStatus', {
           method: 'POST',
           headers: {
+            'X-User-Id': '123', 
+            'X-Username': 'venkat', 
+            'X-User-Type': 'Staff',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),

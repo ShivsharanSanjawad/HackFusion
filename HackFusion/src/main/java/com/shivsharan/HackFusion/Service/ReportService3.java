@@ -37,12 +37,14 @@ public class ReportService3 {
         return reportRepository.getDepartmentsRankWise() ;
     }
 
-    public byte[] getPDFReport(UUID reportId){
+    public String getPDFReport(UUID reportId){
         return documentService.generatePdfFromTemplate(reportId);
     }
+
     public Report getCompleteReport(UUID reportId){
         return reportRepository.findById(reportId).get();
     }
+
     public List<Report> getReportsOfUser(UUID userId)
     {
         return reportRepository.findBySenders_Id(userId);
@@ -52,5 +54,9 @@ public class ReportService3 {
         // number of the reports resolved
         LocalDate weekStart = LocalDate.now().minusWeeks(1);
         return reportRepository.getOverallStats(weekStart);
+    }
+    public List<Report> getClump(double lat, double lon, double dist)
+    {
+        return null;
     }
 }

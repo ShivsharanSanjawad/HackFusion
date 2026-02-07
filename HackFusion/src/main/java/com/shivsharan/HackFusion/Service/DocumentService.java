@@ -12,6 +12,9 @@ import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
 import fr.opensagres.xdocreport.template.IContext;
 import fr.opensagres.xdocreport.template.TemplateEngineKind;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -29,6 +32,9 @@ public class DocumentService {
 
     @Autowired
     private ReportStatusRepository reportStatusRepository;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     public void fillMap(UUID reportId, IContext context) {
         // 1. Fetch data from DB
@@ -65,7 +71,7 @@ public class DocumentService {
         context.put("history", statusHistory);
     }
 
-    public byte[] generatePdfFromTemplate(UUID reportId) {
+    public String generatePdfFromTemplate(UUID reportId) {
         Map<String, Object> data = new HashMap<>();
         try {
             // 1. Load the template from resources
@@ -88,9 +94,20 @@ public class DocumentService {
             // 5. Generate the PDF into a ByteArrayOutputStream
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             report.convert(context, options, out);
+            byte[] pdfBytes = out.toByteArray();
 
-            return out.toByteArray();
+            String fileName = "issue_report_" + System.currentTimeMillis();
 
+            String pdfUrl = cloudinaryService.uploadFile(pdfBytes, fileName, "generated_reports");
+
+            if (pdfUrl != null) {
+                System.out.println("PDF uploaded successfully: " + pdfUrl);
+
+                return pdfUrl;
+            } else {
+                return null;
+            }
+            
         } catch (Exception e) {
             throw new RuntimeException("Error generating PDF", e);
         }

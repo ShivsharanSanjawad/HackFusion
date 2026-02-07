@@ -32,17 +32,23 @@ public class ReportController2 {
         return ResponseEntity.ok().body(ret) ;
     }
     @GetMapping("/getPDFReport")
-    public ResponseEntity getPDFReport(@RequestParam UUID reportID){
-        byte[] pdfBytes = reportService3.getPDFReport(reportID);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=issue_report.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdfBytes);
+    public ResponseEntity<String> getPDFReport(@RequestParam UUID reportID){
+        String link = reportService3.getPDFReport(reportID);
+
+        if (link == null || link.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(link);
     }
 
     @GetMapping("/getReport")
-    public ResponseEntity getUpvotes(@RequestParam UUID reportID){
+    public ResponseEntity<Report> getUpvotes(@RequestParam UUID reportID){
         Report ret = reportService3.getCompleteReport(reportID);
-        return ResponseEntity.ok().body(ret);
+
+        if (ret == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(ret);
     }
 }

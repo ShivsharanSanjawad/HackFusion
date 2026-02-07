@@ -74,6 +74,7 @@ public class ResponseHandler {
         long chatId = update.getMessage().getChatId();
         UserState currentState = chatStates.getOrDefault(chatId, UserState.START);
         Report report = reportDrafts.getOrDefault(chatId, new Report());
+        report.setMedia_url(new ArrayList<>());
 
         // Ignore commands if they interrupt the flow (optional)
         if (update.getMessage().hasText() && update.getMessage().getText().startsWith("/")) {
@@ -169,13 +170,14 @@ public class ResponseHandler {
                             .getFileId();
 
                     String photoUrl = bot.getPhotoLink(fileId);
+                    report.getMedia_url().add(photoUrl);
 
-                    finalizeAndSaveReport(chatId, report, photoUrl);
-
+                } else if(report.getMedia_url().size() > 0) {
+                    finalizeAndSaveReport(chatId, report);
                     chatStates.put(chatId, UserState.COMPLETED);
                     chatStates.remove(chatId);
                     reportDrafts.remove(chatId);
-                } else {
+                } else{
                     silent.send("Please upload an image file to finalize the report.", chatId);
                 }
                 break;
@@ -194,9 +196,13 @@ public class ResponseHandler {
         chatStates.put(chatId, UserState.AWAITING_IMAGE);
     }
 
-    private void finalizeAndSaveReport(long chatId, Report report, String photoUrl) {
+    private void finalizeAndSaveReport(long chatId, Report report) {
         try {
-            String photourl = cloudinaryService.uploadFile(photoUrl, "images");
+            List<String> photos = report.getMedia_url();
+            for(int i = 0; i < photos.size(); i++){
+                String photourl = cloudinaryService.uploadFile(photos.get(i), "images");
+                report.getMedia_url().set(i, photourl);
+            }
             ReportRequest reportRequest = new ReportRequest();
 
             reportRequest.setUid(null);
@@ -204,9 +210,8 @@ public class ResponseHandler {
             reportRequest.setDescription(report.getDescription());
             reportRequest.setLat(report.getLat());
             reportRequest.setLon(report.getLon());
-            reportRequest.setMedia_url(Collections.singletonList(photoUrl));
+            reportRequest.setMedia_url(List.copyOf(report.getMedia_url()));
             reportRequest.setUsername(String.valueOf(chatId));
-
 
             reportRequest.setDepartment_id(null);
 
@@ -221,7 +226,7 @@ public class ResponseHandler {
                     report.getId().toString(),
                     report.getDepartment() == null ?" ": report.getDepartment().getName(),
                     report.getStatus(),
-                    photoUrl
+                    Arrays.toString(report.getMedia_url().toArray())
             );
             silent.send(confirmation, chatId);
 

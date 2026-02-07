@@ -128,10 +128,20 @@ export default function CitizenDashboard() {
 
   useEffect(() => {
     const fetchReports = async () => {
-  try {
-    const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
+    try {
+      const response = await fetch(
+    `http://localhost:8080/getReports?userId=${userId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Id": "123",
+        "X-Username": "venkat",
+        "X-User-Type": "Staff"
+      }
+    }
+  );
 
-    
     // 1. Check if the response is okay first
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -175,7 +185,7 @@ export default function CitizenDashboard() {
         >
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back, Random Citizen👋
+              Welcome back, Arjun👋
             </h1>
             <p className="text-muted-foreground">
               Track your reported issues and make a difference in your community.
