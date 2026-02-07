@@ -1,9 +1,9 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
-import com.shivsharan.HackFusion.Model.Department;
 import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Service.OperatorsService;
 import com.shivsharan.HackFusion.Service.ReportService;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
@@ -24,6 +24,7 @@ public class ResponseHandler {
     // Services
     private final DepartmentService departmentService;
     private final ReportService reportService;
+    private OperatorsService operatorsService;
 
     public enum UserState {
         START,
@@ -37,13 +38,14 @@ public class ResponseHandler {
 
     // Constructor: Inject Services here to ensure they are not null
     public ResponseHandler(SilentSender silent, DBContext db, IssueBot bot,
-                           DepartmentService departmentService, ReportService reportService) {
+                           DepartmentService departmentService, ReportService reportService, OperatorsService operatorsService) {
         this.silent = silent;
         this.chatStates = db.getMap("USER_STATES");
         this.reportDrafts = new HashMap<>();
         this.bot = bot;
         this.departmentService = departmentService;
         this.reportService = reportService;
+        this.operatorsService = operatorsService;
     }
 
     // --- STEP 1: START ---
@@ -51,6 +53,13 @@ public class ResponseHandler {
         silent.send("Welcome to the Civil Issue Reporting System.\n\nPlease providing a brief description of the issue.", chatId);
         chatStates.put(chatId, UserState.AWAITING_DESCRIPTION);
         reportDrafts.put(chatId, new Report());
+        if(operatorsService.findByUsername(String.valueOf(chatId)) != null){
+            Operators operators = new Operators();
+            operators.setJoinDate(LocalDate.now());
+            operators.setRole("Citizen");
+            operators.setDepartment(null);
+            operators.setUsername(String.valueOf(chatId));
+        }
     }
 
     public void handleUpdate(Update update) {
@@ -82,17 +91,16 @@ public class ResponseHandler {
             case AWAITING_DEPARTMENT:
                 if (update.getMessage().hasText()) {
                     String deptName = update.getMessage().getText();
-                    Department dept = departmentService.findByName(deptName);
-
-                    if (dept != null) {
-                        report.setDepartment(dept);
-                        silent.send("Department confirmed. Please enter the date since the issue has persisted (Format: YYYY-MM-DD).", chatId);
-
+//                    Department dept = departmentService.findByName(deptName);
+//
+//                    if (dept != null) {
+                        report.setDepartment(null);
+                        silent.send("Department confirmed. Please enter the number of days since the issue has persisted (Format: Number).", chatId);
                         reportDrafts.put(chatId, report);
                         chatStates.put(chatId, UserState.AWAITING_ISSUE_SINCE);
-                    } else {
-                        silent.send("Department not found. Please ensure the name is correct and try again.", chatId);
-                    }
+//                    } else {
+//                        silent.send("Department not found. Please ensure the name is correct and try again.", chatId);
+//                    }
                 } else {
                     silent.send("Please enter a valid department name.", chatId);
                 }
@@ -102,7 +110,9 @@ public class ResponseHandler {
             case AWAITING_ISSUE_SINCE:
                 if (update.getMessage().hasText()) {
                     try {
-                        LocalDate date = LocalDate.parse(update.getMessage().getText());
+                        LocalDate date = LocalDate.now();
+                        int noOfDays = Integer.parseInt(update.getMessage().getText());
+                        date = date.minusDays(noOfDays);
                         report.setIssueSince(date);
 
                         silent.send("Date recorded. Please share the precise location of the issue using the attachment menu.", chatId);
@@ -182,9 +192,8 @@ public class ResponseHandler {
             reportRequest.setLon(report.getLon());
             reportRequest.setMedia_url(Collections.singletonList(photoUrl));
             reportRequest.setDepartment_id(null);
-
+            reportRequest.setUsername(String.valueOf(chatId));
             reportService.save(reportRequest);
-
 
             String confirmation = String.format(
                     "Report Registered Successfully.\n\nID: %s\nDepartment: %s\nStatus: %s\nView Image: %s",

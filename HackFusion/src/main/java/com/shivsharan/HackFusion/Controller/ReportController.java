@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Controller
+@RestController
 public class ReportController {
 
     @Autowired
@@ -31,8 +31,8 @@ public class ReportController {
     private DepartmentService departmentService;
     @PostMapping("/report")
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
-            Report r = reportService.save(dto) ;
-//            ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
+            Report r = reportService.save(dto);
+            ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
 //            r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
 //            r.setPriority(classificationDetailsDto.getFinalPriority());
             return ResponseEntity.ok().body(r.getId());

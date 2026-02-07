@@ -297,7 +297,7 @@ function StatsSection() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch('http://localhost:8080/getStats', {
+        const response = await fetch('http://localhost:8080/getStat', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
