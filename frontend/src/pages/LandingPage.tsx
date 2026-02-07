@@ -181,7 +181,7 @@ function HeroSection() {
               {/* Central hexagon */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                 <HexagonCard size="lg" color="primary">
-                  <div className="text-center text-white transform rotate-45">
+                  <div className="text-center text-white transform">
                     <AnimatedCounter value={dashboardStats.totalActiveIncidents} className="text-3xl font-bold" />
                     <p className="text-xs opacity-80">Active</p>
                   </div>
@@ -472,64 +472,64 @@ function FeaturesSection() {
   );
 }
 
-// CTA Section
-function CTASection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
+// // CTA Section
+// function CTASection() {
+//   const ref = useRef(null);
+//   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
-  return (
-    <section ref={ref} className="py-20">
-      <div className="container mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={isInView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.7 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-primary p-12 md:p-16 text-center"
-        >
-          {/* Background decorations */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+//   return (
+//     <section ref={ref} className="py-20">
+//       <div className="container mx-auto px-6">
+//         <motion.div
+//           initial={{ opacity: 0, scale: 0.95 }}
+//           animate={isInView ? { opacity: 1, scale: 1 } : {}}
+//           transition={{ duration: 0.7 }}
+//           className="relative overflow-hidden rounded-3xl bg-gradient-primary p-12 md:p-16 text-center"
+//         >
+//           {/* Background decorations */}
+//           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+//           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
 
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.2 }}
-            className="text-3xl md:text-4xl font-display font-bold text-white mb-4 relative"
-          >
-            Ready to Make Your City Better?
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.3 }}
-            className="text-white/80 max-w-xl mx-auto mb-8 relative"
-          >
-            Join thousands of citizens who are actively improving their urban 
-            infrastructure. Report an issue today.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.4 }}
-            className="flex flex-wrap justify-center gap-4 relative"
-          >
-            <Link to="/signup">
-              <Button size="lg" variant="secondary" className="font-semibold">
-                Get Started Free
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="outline" className="border-white/30 text-blue hover:bg-white/10">
-                Login as Authority
-              </Button>
-            </Link>
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
+//           <motion.h2
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={isInView ? { opacity: 1, y: 0 } : {}}
+//             transition={{ delay: 0.2 }}
+//             className="text-3xl md:text-4xl font-display font-bold text-white mb-4 relative"
+//           >
+//             Ready to Make Your City Better?
+//           </motion.h2>
+//           <motion.p
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={isInView ? { opacity: 1, y: 0 } : {}}
+//             transition={{ delay: 0.3 }}
+//             className="text-white/80 max-w-xl mx-auto mb-8 relative"
+//           >
+//             Join thousands of citizens who are actively improving their urban 
+//             infrastructure. Report an issue today.
+//           </motion.p>
+//           <motion.div
+//             initial={{ opacity: 0, y: 20 }}
+//             animate={isInView ? { opacity: 1, y: 0 } : {}}
+//             transition={{ delay: 0.4 }}
+//             className="flex flex-wrap justify-center gap-4 relative"
+//           >
+//             <Link to="/signup">
+//               <Button size="lg" variant="secondary" className="font-semibold">
+//                 Get Started Free
+//                 <ArrowRight className="ml-2 w-4 h-4" />
+//               </Button>
+//             </Link>
+//             <Link to="/login">
+//               <Button size="lg" variant="outline" className="border-white/30 text-blue hover:bg-white/10">
+//                 Login as Authority
+//               </Button>
+//             </Link>
+//           </motion.div>
+//         </motion.div>
+//       </div>
+//     </section>
+//   );
+// }
 
 // Footer
 function Footer() {
@@ -572,7 +572,7 @@ export default function LandingPage() {
       <LiveMapSection />
       <StatsSection />
       <FeaturesSection />
-      <CTASection />
+      {/* <CTASection /> */}
       <Footer />
 
       {/* Floating Action Button */}

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   FileText,
   Zap,
+  Phone,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -106,6 +107,7 @@ export default function CitizenDashboard() {
   const { incidents, upvoteIncident } = useIncidents();
   const [searchQuery, setSearchQuery] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
 
   const userIncidents = incidents.filter(i => i.reportedBy.role === 'citizen');
   const filteredIncidents = userIncidents.filter(i =>
@@ -205,7 +207,13 @@ export default function CitizenDashboard() {
                     key={incident.id}
                     incident={incident}
                     delay={index * 0.1}
-                    onUpvote={() => upvoteIncident(incident.id)}
+                    hasUpvoted={upvotedIncidents.has(incident.id)}
+                    onUpvote={() => {
+                      if (!upvotedIncidents.has(incident.id)) {
+                        setUpvotedIncidents(new Set([...upvotedIncidents, incident.id]));
+                        upvoteIncident(incident.id);
+                      }
+                    }}
                   />
                 ))
               ) : (
@@ -245,6 +253,22 @@ export default function CitizenDashboard() {
                   </div>
                 ))}
               </div>
+
+              {/* Call Support Team Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-6 pt-6 border-t border-border"
+              >
+                <Button 
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                  onClick={() => window.open('tel:+911234567890')}
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Call Support Team
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>

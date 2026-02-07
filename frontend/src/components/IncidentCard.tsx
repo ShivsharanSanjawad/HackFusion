@@ -15,6 +15,7 @@ interface IncidentCardProps {
   onClick?: () => void;
   showMap?: boolean;
   delay?: number;
+  hasUpvoted?: boolean;
 }
 
 export function IncidentCard({
@@ -24,6 +25,7 @@ export function IncidentCard({
   onClick,
   showMap = false,
   delay = 0,
+  hasUpvoted = false,
 }: IncidentCardProps) {
   const timeAgo = formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true });
 
@@ -103,7 +105,7 @@ export function IncidentCard({
           <div className="flex items-center justify-between pt-4 border-t border-border">
             <div className="flex items-center gap-3">
               {onUpvote && (
-                <UpvoteButton count={incident.upvotes} onUpvote={onUpvote} />
+                <UpvoteButton count={incident.upvotes} onUpvote={onUpvote} upvoted={hasUpvoted} />
               )}
               {incident.images.length > 0 && (
                 <span className="text-sm text-muted-foreground">

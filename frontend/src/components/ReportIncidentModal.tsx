@@ -23,11 +23,12 @@ import { IncidentMap } from '@/components/IncidentMap';
 import { cn } from '@/lib/utils';
 
 const categories = [
-  { id: 'power', label: 'Power Outage', icon: Zap, color: 'text-yellow-500' },
-  { id: 'water', label: 'Water Supply', icon: Droplets, color: 'text-blue-500' },
-  { id: 'roads', label: 'Road Damage', icon: Construction, color: 'text-orange-500' },
-  { id: 'sanitation', label: 'Sanitation', icon: Trash2, color: 'text-green-500' },
-  { id: 'streetlights', label: 'Streetlights', icon: Lightbulb, color: 'text-purple-500' },
+  { id: 'BMC', label: 'BMC', icon: Zap, color: 'text-yellow-500' },
+  { id: 'MMRDA', label: 'MMRDA', icon: Droplets, color: 'text-blue-500' },
+  { id: 'MMRCL', label: 'MMRCL', icon: Construction, color: 'text-orange-500' },
+  { id: 'BEST', label: 'BEST', icon: Trash2, color: 'text-green-500' },
+  { id: 'Police Department', label: 'Police Department', icon: Lightbulb, color: 'text-purple-500' },
+  { id: 'Public Works Department', label: 'Public Works Department', icon: Zap, color: 'text-blue-300' },
 ];
 
 const severities = [
@@ -54,8 +55,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
-    severity: 'high',
+    department: '',
     locationAddress: '',
     sinceDate: '',
   });
@@ -121,7 +121,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
         if (!formData.description.trim()) newErrors.description = 'Description is required';
         break;
       case 2:
-        if (!formData.category) newErrors.category = 'Category is required';
+        if (!formData.department) newErrors.department = 'Department is required';
         if (!location && !formData.locationAddress) {
           newErrors.location = 'Location is required';
         }
@@ -147,16 +147,44 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = () => {
-    if (onSubmit) {
-      onSubmit({
-        ...formData,
-        images,
-        location,
-      });
+  const handleSubmit = async () => {
+  try {
+    // Hardcoded user id as requested
+    const UID = "ca78576b-e90d-4082-97ce-1728dddc5174";
+
+    // Convert image previews into fake URLs (demo purpose)
+    const mediaUrls = previews.map(
+      (_, i) => `https://example.com/image${i + 1}.jpg`
+    );
+
+    const payload = {
+      uid: UID,
+      issue_since: formData.sinceDate || "2026-02-07",
+      description: formData.description,
+      lat: location?.lat || 18.5204,
+      lon: location?.lng || 73.8567,
+      media_url: mediaUrls,
+      department_id: formData.department
+    };
+
+    const response = await fetch("http://localhost:8080/report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit report");
     }
+
+    const result = await response.json();
+    console.log("Report submitted:", result);
+
+    // Close modal
     onOpenChange(false);
-    // Reset form
+
     setStep(1);
     setImages([]);
     setPreviews([]);
@@ -164,13 +192,20 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
     setFormData({
       title: '',
       description: '',
-      category: '',
-      severity: 'high',
+      department: '',
       locationAddress: '',
       sinceDate: '',
     });
     setErrors({});
-  };
+
+    alert("Report submitted successfully!");
+
+  } catch (error) {
+    console.error(error);
+    alert("Error submitting report");
+  }
+};
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -256,7 +291,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
             >
               {/* Category Selection */}
               <div>
-                <label className="text-sm font-medium mb-3 block">Select Category</label>
+                <label className="text-sm font-medium mb-3 block">Select Department</label>
                 <div className="grid grid-cols-2 gap-2">
                   {categories.map((cat) => {
                     const Icon = cat.icon;
@@ -265,10 +300,10 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
                         key={cat.id}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setFormData({ ...formData, category: cat.id })}
+                        onClick={() => setFormData({ ...formData, department: cat.id })}
                         className={cn(
                           'p-3 rounded-lg border-2 transition-all flex items-center gap-2',
-                          formData.category === cat.id
+                          formData.department === cat.id
                             ? 'border-primary bg-primary/10'
                             : 'border-border hover:border-primary/50'
                         )}
@@ -436,41 +471,6 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <div>
-                <label className="text-sm font-medium mb-3 block">Incident Severity</label>
-                <div className="space-y-2">
-                  {severities.map((severity) => {
-                    const severityColors = {
-                      critical: 'border-red-500/30 bg-red-500/10 hover:border-red-500',
-                      high: 'border-orange-500/30 bg-orange-500/10 hover:border-orange-500',
-                      medium: 'border-yellow-500/30 bg-yellow-500/10 hover:border-yellow-500',
-                      low: 'border-green-500/30 bg-green-500/10 hover:border-green-500',
-                    };
-
-                    return (
-                      <motion.button
-                        key={severity.id}
-                        whileHover={{ scale: 1.01 }}
-                        onClick={() => setFormData({ ...formData, severity: severity.id })}
-                        className={cn(
-                          'w-full p-3 rounded-lg border-2 text-left transition-all',
-                          formData.severity === severity.id
-                            ? severityColors[severity.id as keyof typeof severityColors].replace(
-                                'hover:',
-                                ''
-                              )
-                            : severityColors[severity.id as keyof typeof severityColors]
-                        )}
-                      >
-                        <div className="font-medium">{severity.label}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {severity.description}
-                        </div>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Summary */}
               <motion.div
@@ -484,12 +484,8 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
                     <span className="font-medium">Title:</span> {formData.title}
                   </div>
                   <div>
-                    <span className="font-medium">Category:</span>{' '}
-                    {categories.find((c) => c.id === formData.category)?.label}
-                  </div>
-                  <div>
-                    <span className="font-medium">Severity:</span>{' '}
-                    {severities.find((s) => s.id === formData.severity)?.label}
+                    <span className="font-medium">Department:</span>{' '}
+                    {categories.find((c) => c.id === formData.department)?.label}
                   </div>
                   <div>
                     <span className="font-medium">Images:</span> {previews.length} uploaded
