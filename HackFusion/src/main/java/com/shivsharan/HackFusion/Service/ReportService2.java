@@ -2,25 +2,69 @@ package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.DTO.CompletionDTO;
 import com.shivsharan.HackFusion.DTO.Status;
+import com.shivsharan.HackFusion.Model.Operators;
+import com.shivsharan.HackFusion.Model.Report;
+import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Repository.OperatorsRepository;
 import com.shivsharan.HackFusion.Repository.ReportRepository;
+import com.shivsharan.HackFusion.Repository.ReportStatusRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 public class ReportService2 {
 
-    public void closeReport(UUID reportId){
+    @Autowired
+    ReportRepository reportRepository;
+    @Autowired
+    ReportStatusRepository reportStatusRepository;
+    @Autowired
+    OperatorsRepository operatorsRepository;
+    @Transactional
+    public String closeReport(UUID reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report with ID " + reportId + " not found"));
 
+        report.setStatus("Closed");
+        reportRepository.save(report);
+
+        // 3. Create a new entry for the Status History
+        ReportStatus history = new ReportStatus();
+        history.setReports(report);
+        history.setDate(LocalDate.now());
+        history.setStatus("Closed");
+        reportStatusRepository.save(history);
+
+        // Create PDF LINK and return it
+
+        return "no link created (PDF functionality doesnt exist";
     }
-    public void getTasks(UUID workerId){
-
+    public List<Report> getTasks(UUID workerId)
+    {
+        return reportRepository.findByWorkersId(workerId);
     }
-    public void updateStatus(Status dto){
+    @Transactional
+    public void updateStatus(Status dto) {
+        Report report = reportRepository.findById(dto.getReportID())
+                .orElseThrow(() -> new RuntimeException("Report with ID " + dto.getReportID() + " not found"));
 
+        report.setStatus(dto.getNewStatus());
+        reportRepository.save(report);
+
+        ReportStatus history = new ReportStatus();
+        history.setReports(report);
+        history.setDate(dto.getCurrDate());
+        history.setStatus(dto.getNewStatus());
+
+        reportStatusRepository.save(history);
     }
-    public void completeReportByWorker(CompletionDTO dto){
-
+    public String completeReportByWorker(CompletionDTO dto)
+    {
+        return null;
     }
 }
