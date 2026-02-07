@@ -43,6 +43,7 @@ public class ReportService {
         report.setPriority(1); // Default medium priority
         report.setUpvotes(0);
         Department dept = null;
+        System.out.println();
         Operators operator = operatorsRepository.findByUsername(dto.getUsername());
         report.setDepartment(dept);
         report.setSenders(operator);

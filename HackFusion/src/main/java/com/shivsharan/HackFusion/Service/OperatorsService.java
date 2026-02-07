@@ -14,4 +14,8 @@ public class OperatorsService {
     public Operators findByUsername(String username){
         return operatorsRepository.findByUsername(username);
     }
+
+    public void save(Operators operators) {
+        operatorsRepository.save(operators);
+    }
 }
