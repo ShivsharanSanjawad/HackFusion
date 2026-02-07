@@ -2,9 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
-  Upload,
   MapPin,
-  AlertCircle,
   CheckCircle2,
   Image as ImageIcon,
   Zap,
@@ -13,29 +11,21 @@ import {
   Trash2,
   Lightbulb,
   Navigation,
-  GripVertical,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { IncidentMap } from '@/components/IncidentMap';
 import { cn } from '@/lib/utils';
 
 const categories = [
-  { id: '066af557-295a-42a9-981e-44a4d9e53cc0', label: 'BMC', icon: Zap, color: 'text-yellow-500' },
+  { id: '550e8400-e29b-41d4-a716-446655440000', label: 'Engineering', icon: Zap, color: 'text-yellow-500' },
   { id: '0800c6f9-a50c-486a-9ac3-df5cc2d8d706', label: 'MMRDA', icon: Droplets, color: 'text-blue-500' },
   { id: 'd4631ade-0722-4ade-a7a7-92ba00a28dcc', label: 'MMRCL', icon: Construction, color: 'text-orange-500' },
   { id: 'bfced05c-3781-467f-8b27-ee288b1ecc61', label: 'BEST', icon: Trash2, color: 'text-green-500' },
   { id: '13bbbd9f-9b56-4135-99fe-b04bee2db5b7', label: 'Police Department', icon: Lightbulb, color: 'text-purple-500' },
   { id: 'de61431b-bb6b-4e92-a918-fd5136b6b0b1', label: 'Public Works Department', icon: Zap, color: 'text-blue-300' },
-];
-
-const severities = [
-  { id: 'critical', label: 'Critical', description: 'Urgent, safety hazard' },
-  { id: 'high', label: 'High', description: 'Major issue, needs quick fix' },
-  { id: 'medium', label: 'Medium', description: 'Moderate impact' },
-  { id: 'low', label: 'Low', description: 'Minor issue' },
 ];
 
 interface ReportIncidentModalProps {
@@ -44,12 +34,12 @@ interface ReportIncidentModalProps {
   onSubmit?: (data: any) => void;
 }
 
-export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportIncidentModalProps) {
+export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalProps) {
   const [step, setStep] = useState(1);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -64,18 +54,13 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
     if (images.length + files.length > 5) {
       setErrors({ images: 'Maximum 5 images allowed' });
       return;
     }
 
     files.forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        setErrors({ images: 'Only image files are allowed' });
-        return;
-      }
-
+      if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         setPreviews((prev) => [...prev, event.target?.result as string]);
@@ -84,11 +69,7 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
     });
 
     setImages((prev) => [...prev, ...files]);
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors.images;
-      return newErrors;
-    });
+    setErrors((prev) => ({ ...prev, images: '' }));
   };
 
   const removeImage = (index: number) => {
@@ -97,115 +78,92 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
   };
 
   const detectLocation = () => {
-  const fakeLocation = {
-    address: "Munshi Nagar, Andheri, Mumbai",
-    lat: 18.5204,
-    lng: 73.8567
+    const fakeLocation = {
+      address: "Munshi Nagar, Andheri, Mumbai",
+      lat: 18.5204,
+      lng: 73.8567
+    };
+    setLocation(fakeLocation);
+    setFormData({ ...formData, locationAddress: fakeLocation.address });
   };
-
-  setLocation(fakeLocation);
-
-  setFormData({
-    ...formData,
-    locationAddress: fakeLocation.address
-  });
-};
-
 
   const validateStep = (currentStep: number): boolean => {
     const newErrors: Record<string, string> = {};
-
-    switch (currentStep) {
-      case 1:
-        if (!formData.title.trim()) newErrors.title = 'Title is required';
-        if (!formData.description.trim()) newErrors.description = 'Description is required';
-        break;
-      case 2:
-        if (!formData.department) newErrors.department = 'Department is required';
-        if (!location && !formData.locationAddress) {
-          newErrors.location = 'Location is required';
-        }
-        break;
-      case 3:
-        if (previews.length === 0) {
-          newErrors.images = 'At least one image is required';
-        }
-        break;
+    if (currentStep === 1) {
+      if (!formData.title.trim()) newErrors.title = 'Title is required';
+      if (!formData.description.trim()) newErrors.description = 'Description is required';
     }
-
+    if (currentStep === 2) {
+      if (!formData.department) newErrors.department = 'Department is required';
+      if (!location && !formData.locationAddress) newErrors.location = 'Location is required';
+    }
+    if (currentStep === 3 && images.length === 0) {
+      newErrors.images = 'At least one image is required';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(step)) {
-      setStep((prev) => Math.min(prev + 1, 4));
-    }
-  };
-
-  const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 1));
-  };
-
   const handleSubmit = async () => {
-  try {
-    // Hardcoded user id as requested
-    const UID = "ca78576b-e90d-4082-97ce-1728dddc5174";
+    setIsSubmitting(true);
+    try {
+      const uploadedMediaUrls: string[] = [];
 
-    // Convert image previews into fake URLs (demo purpose)
-    const mediaUrls = previews.map(
-      (_, i) => `https://example.com/image${i + 1}.jpg`
-    );
+      // 1. Upload each file to Cloudinary via Spring Boot
+      for (const file of images) {
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+        uploadData.append('folder_name', 'incident_reports');
 
-    const payload = {
-      uid: UID,
-      issue_since: formData.sinceDate || "2026-02-07",
-      description: formData.description,
-      lat: location?.lat || 18.5204,
-      lon: location?.lng || 73.8567,
-      media_url: mediaUrls,
-      department_id: formData.department
-    };
+        const uploadRes = await fetch('http://localhost:8080/cloudinary', {
+          method: 'POST',
+          body: uploadData,
+        });
 
-    const response = await fetch("http://localhost:8080/report", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+        if (!uploadRes.ok) throw new Error(`Failed to upload ${file.name}`);
+        const cloudUrl = await uploadRes.text();
+        uploadedMediaUrls.push(cloudUrl);
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to submit report");
+      // 2. Construct final payload
+      const payload = {
+        username: "alice_tech", // Ensure this exists in your 'operators' table
+        issue_since: formData.sinceDate || new Date().toISOString().split('T')[0],
+        description: `${formData.title}: ${formData.description}`,
+        lat: location?.lat || 18.5204,
+        lon: location?.lng || 73.8567,
+        media_url: uploadedMediaUrls,
+        department_id: formData.department
+      };
+
+      // 3. Submit Report
+      const response = await fetch("http://localhost:8080/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error("Failed to save report to database");
+
+      alert("Report submitted successfully!");
+      onOpenChange(false);
+      resetForm();
+
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Error during submission");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    const result = await response.json();
-    console.log("Report submitted:", result);
-
-    // Close modal
-    onOpenChange(false);
-
+  const resetForm = () => {
     setStep(1);
     setImages([]);
     setPreviews([]);
     setLocation(null);
-    setFormData({
-      title: '',
-      description: '',
-      department: '',
-      locationAddress: '',
-      sinceDate: '',
-    });
-    setErrors({});
-
-    alert("Report submitted successfully!");
-
-  } catch (error) {
-    console.error(error);
-    alert("Error submitting report");
-  }
-};
-
+    setFormData({ title: '', description: '', department: '', locationAddress: '', sinceDate: '' });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,308 +171,93 @@ export function ReportIncidentModal({ open, onOpenChange, onSubmit }: ReportInci
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Report New Issue</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-6 w-6"
-            >
-              <X className="w-4 h-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
-        {/* Progress Steps */}
         <div className="flex gap-2 mb-6">
           {[1, 2, 3, 4].map((s) => (
-            <div
-              key={s}
-              className={cn(
-                'flex-1 h-2 rounded-full transition-all',
-                s <= step ? 'bg-gradient-primary' : 'bg-muted'
-              )}
-            />
+            <div key={s} className={cn('flex-1 h-2 rounded-full transition-all', s <= step ? 'bg-blue-600' : 'bg-gray-200')} />
           ))}
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Basic Info */}
           {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
-            >
+            <motion.div key="s1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Issue Title</label>
-                <Input
-                  placeholder="Brief title of the issue"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className={errors.title ? 'border-danger' : ''}
-                />
-                {errors.title && (
-                  <p className="text-xs text-danger mt-1">{errors.title}</p>
-                )}
+                <label className="text-sm font-medium">Issue Title</label>
+                <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Broken Street Light" />
+                {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
               </div>
-
               <div>
-                <label className="text-sm font-medium mb-2 block">Detailed Description</label>
-                <Textarea
-                  placeholder="Describe the issue in detail... What's the problem? When did it start? How is it affecting the area?"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  rows={5}
-                  className={errors.description ? 'border-danger' : ''}
-                />
-                {errors.description && (
-                  <p className="text-xs text-danger mt-1">{errors.description}</p>
-                )}
+                <label className="text-sm font-medium">Description</label>
+                <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} />
+                {errors.description && <p className="text-red-500 text-xs">{errors.description}</p>}
               </div>
             </motion.div>
           )}
 
-          {/* Step 2: Category & Location */}
           {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              {/* Category Selection */}
-              <div>
-                <label className="text-sm font-medium mb-3 block">Select Department</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {categories.map((cat) => {
-                    const Icon = cat.icon;
-                    return (
-                      <motion.button
-                        key={cat.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setFormData({ ...formData, department: cat.id })}
-                        className={cn(
-                          'p-3 rounded-lg border-2 transition-all flex items-center gap-2',
-                          formData.department === cat.id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:border-primary/50'
-                        )}
-                      >
-                        <Icon className={cn('w-4 h-4', cat.color)} />
-                        <span className="text-sm font-medium">{cat.label}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-                {errors.category && (
-                  <p className="text-xs text-danger mt-2">{errors.category}</p>
-                )}
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Incident Location
-                </label>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter address or coordinates"
-                      value={formData.locationAddress}
-                      onChange={(e) =>
-                        setFormData({ ...formData, locationAddress: e.target.value })
-                      }
-                      className={errors.location ? 'border-danger' : ''}
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={detectLocation}
-                      disabled={isDetectingLocation}
-                    >
-                      <Navigation className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  {location && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 rounded-lg bg-success/10 text-success text-sm flex items-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      Location detected: {location.address}
-                    </motion.div>
-                  )}
-                  {errors.location && (
-                    <p className="text-xs text-danger">{errors.location}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Since Date */}
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  When did the issue start?
-                </label>
-                <Input
-                  type="date"
-                  value={formData.sinceDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sinceDate: e.target.value })
-                  }
-                  className={errors.sinceDate ? 'border-danger' : ''}
-                />
-                {errors.sinceDate && (
-                  <p className="text-xs text-danger mt-1">{errors.sinceDate}</p>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 3: Images */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="text-sm font-medium mb-3 block">Upload Photos</label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Upload photos of the issue (maximum 5 images, helps with verification)
-                </p>
-
-                {/* Upload Area */}
-                <motion.div
-                  whileHover={{ borderColor: 'var(--primary)' }}
-                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="font-medium mb-1">Drop images here or click to select</p>
-                  <p className="text-xs text-muted-foreground">
-                    Supported: JPG, PNG, WebP (up to 5 images)
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </motion.div>
-
-                {errors.images && (
-                  <p className="text-xs text-danger mt-2">{errors.images}</p>
-                )}
-
-                {/* Image Previews */}
-                {previews.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4"
+            <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFormData({ ...formData, department: cat.id })}
+                    className={cn('p-3 border rounded-lg flex items-center gap-2', formData.department === cat.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200')}
                   >
-                    <label className="text-sm font-medium mb-2 block">Uploaded Images</label>
-                    <div className="grid grid-cols-4 gap-3">
-                      {previews.map((preview, idx) => (
-                        <motion.div
-                          key={idx}
-                          layout
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          className="relative group"
-                        >
-                          <img
-                            src={preview}
-                            alt={`Preview ${idx}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => removeImage(idx)}
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-danger text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </motion.button>
-                        </motion.div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {previews.length}/5 images uploaded
-                    </p>
-                  </motion.div>
-                )}
+                    <cat.icon className={cn('w-4 h-4', cat.color)} />
+                    <span className="text-xs">{cat.label}</span>
+                  </button>
+                ))}
               </div>
+              <div className="flex gap-2">
+                <Input value={formData.locationAddress} onChange={(e) => setFormData({ ...formData, locationAddress: e.target.value })} placeholder="Location" />
+                <Button variant="outline" onClick={detectLocation}><Navigation className="w-4 h-4" /></Button>
+              </div>
+              <Input type="date" value={formData.sinceDate} onChange={(e) => setFormData({ ...formData, sinceDate: e.target.value })} />
             </motion.div>
           )}
 
-          {/* Step 4: Severity & Review */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-
-              {/* Summary */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 rounded-lg bg-muted/50 space-y-2"
+          {step === 3 && (
+            <motion.div key="s3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <div 
+                className="border-2 border-dashed p-8 rounded-xl text-center cursor-pointer hover:bg-gray-50"
+                onClick={() => fileInputRef.current?.click()}
               >
-                <p className="text-sm font-medium">Report Summary</p>
-                <div className="text-xs space-y-1 text-muted-foreground">
-                  <div>
-                    <span className="font-medium">Title:</span> {formData.title}
+                <ImageIcon className="w-10 h-10 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm">Click to upload images (Max 5)</p>
+                <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {previews.map((p, i) => (
+                  <div key={i} className="relative">
+                    <img src={p} className="w-full h-16 object-cover rounded" alt="preview" />
+                    <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
                   </div>
-                  <div>
-                    <span className="font-medium">Department:</span>{' '}
-                    {categories.find((c) => c.id === formData.department)?.label}
-                  </div>
-                  <div>
-                    <span className="font-medium">Images:</span> {previews.length} uploaded
-                  </div>
-                </div>
-              </motion.div>
+                ))}
+              </div>
+              {errors.images && <p className="text-red-500 text-xs">{errors.images}</p>}
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-bold mb-2">Review Report</h4>
+              <p className="text-sm"><strong>Title:</strong> {formData.title}</p>
+              <p className="text-sm"><strong>Dept:</strong> {categories.find(c => c.id === formData.department)?.label}</p>
+              <p className="text-sm"><strong>Images:</strong> {images.length}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Navigation Buttons */}
         <div className="flex gap-3 mt-6">
-          {step > 1 && (
-            <Button variant="outline" onClick={handleBack} className="flex-1">
-              Back
-            </Button>
-          )}
-          {step < 4 && (
-            <Button onClick={handleNext} className="flex-1 bg-gradient-primary hover:opacity-90">
-              Next
-            </Button>
-          )}
-          {step === 4 && (
-            <Button
-              onClick={handleSubmit}
-              className="flex-1 bg-gradient-primary hover:opacity-90 shadow-glow"
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Submit Report
+          {step > 1 && <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">Back</Button>}
+          {step < 4 ? (
+            <Button onClick={() => validateStep(step) && setStep(step + 1)} className="flex-1 bg-blue-600 hover:bg-blue-700">Next</Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 bg-green-600 hover:bg-green-700">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+              {isSubmitting ? "Uploading..." : "Submit Report"}
             </Button>
           )}
         </div>

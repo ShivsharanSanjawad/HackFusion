@@ -28,27 +28,38 @@ public class ReportService {
     @Autowired
     DepartmentRepository departmentRepository;
     public Report save(ReportRequest dto) {
-        // 1. Initialize a new Report Entity
-        Report report = new Report();
+        // 1. Fetch the operator - MUST NOT BE NULL
+        Operators operator = operatorsRepository.findByUsername(dto.getUsername());
 
-        // 2. Map basic fields from DTO
+        if (operator == null) {
+            // Log this to your console to see what username actually arrived
+            System.out.println("DEBUG: Looking for username: " + dto.getUsername());
+            throw new RuntimeException("Operator not found with username: " + dto.getUsername());
+        }
+
+        Report report = new Report();
         report.setDescription(dto.getDescription());
+
+        // Ensure the date format from React (YYYY-MM-DD) matches LocalDate
         report.setIssueSince((dto.getIssue_since()));
+
         report.setLat(dto.getLat());
         report.setLon(dto.getLon());
         report.setMedia_url(dto.getMedia_url());
-
         report.setEntryDate(LocalDate.now());
         report.setStatus("PENDING");
-        report.setPriority(1); // Default medium priority
+        report.setPriority(1);
         report.setUpvotes(0);
-        Department dept = null;
-        System.out.println();
-        Operators operator = operatorsRepository.findByUsername(dto.getUsername());
-        report.setDepartment(dept);
+
+        // Set the mandatory sender
         report.setSenders(operator);
 
-        // 5. Persist to Database
+        // 3. Map Department (using the ID sent from React)
+        if (dto.getDepartment_id() != null) {
+            departmentRepository.findById(dto.getDepartment_id())
+                    .ifPresent(report::setDepartment);
+        }
+
         return reportRepository.save(report);
     }
     public List<Report> getReports(UUID departmentId)

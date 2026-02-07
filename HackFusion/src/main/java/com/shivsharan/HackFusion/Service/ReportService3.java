@@ -55,4 +55,8 @@ public class ReportService3 {
         LocalDate weekStart = LocalDate.now().minusWeeks(1);
         return reportRepository.getOverallStats(weekStart);
     }
+    public List<Report> getClump(double lat, double lon, double dist)
+    {
+        return null;
+    }
 }
