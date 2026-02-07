@@ -2,10 +2,14 @@ package com.shivsharan.HackFusion.Controller;
 
 import com.google.j2objc.annotations.AutoreleasePool;
 import com.shivsharan.HackFusion.DTO.ReportRequest;
+import com.shivsharan.HackFusion.Model.Department;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
+import com.shivsharan.HackFusion.Service.DepartmentService;
 import com.shivsharan.HackFusion.Service.MLpipeline;
 import com.shivsharan.HackFusion.Service.ReportService;
+import com.shivsharan.HackFusion.dto.ClassificationDetailsDto;
+import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,12 +27,19 @@ public class ReportController {
     ReportService reportService ;
 
     @Autowired
+    ReportService3 reportService3 ;
+
+    @Autowired
     MLpipeline mLpipeline ;
+    @Autowired
+    private DepartmentService departmentService;
 
     @PostMapping("/report")
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
             Report r = reportService.save(dto) ;
-            mLpipeline.update(r);
+            ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
+            r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
+            r.setPriority(classificationDetailsDto.getFinalPriority());
             return ResponseEntity.ok().body(r.getId());
     }
 
@@ -38,6 +49,11 @@ public class ReportController {
         return ResponseEntity.ok().body(ret);
     }
 
+    @GetMapping("/getReports")
+    public ResponseEntity getReportsOfUser(@RequestParam UUID userId){
+        reportService3.getReportsOfUser(userId);
+        return ResponseEntity.ok().body("ALL REPORTS");
+    }
 
 
 }
