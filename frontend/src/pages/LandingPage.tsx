@@ -243,36 +243,65 @@ function LiveMapSection() {
           </p>
         </motion.div>
 
-        {/* <motion.div
+        {/* Interactive Incident Map */}
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="glass-card p-4 overflow-hidden"
+          className="glass-card p-4 overflow-hidden rounded-2xl"
         >
-          <IncidentMap
-            incidents={incidents}
-            showHeatmap
-            height="500px"
-          />
-        </motion.div> */}
+          {incidents.length > 0 ? (
+            <IncidentMap
+              incidents={incidents}
+              height="500px"
+            />
+          ) : (
+            <div className="h-96 flex items-center justify-center flex-col gap-4 text-center">
+              <MapPin className="w-12 h-12 text-muted-foreground opacity-30" />
+              <p className="text-muted-foreground">No incidents reported yet</p>
+            </div>
+          )}
+        </motion.div>
+
+        {/* View Full Map Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex justify-center"
+        >
+        </motion.div>
 
         {/* Recent incidents list */}
-        {/* <motion.div
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, delay: 0.4 }}
-          className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="mt-8"
         >
-          {incidents.slice(0, 3).map((incident, index) => (
-            <IncidentCard
-              key={incident.id}
-              incident={incident}
-              delay={0.5 + index * 0.1}
-              onUpvote={() => handleUpvote(incident.id)}
-              hasUpvoted={upvotedIncidents.has(incident.id)}
-            />
-          ))}
-        </motion.div> */}
+          <h3 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
+            <AlertCircle className="w-6 h-6 text-red-500" />
+            Recently Reported Issues
+          </h3>
+          {incidents.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {incidents.slice(0, 3).map((incident, index) => (
+                <IncidentCard
+                  key={incident.id}
+                  incident={incident}
+                  delay={0.5 + index * 0.1}
+                  onUpvote={() => handleUpvote(incident.id)}
+                  hasUpvoted={upvotedIncidents.has(incident.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card p-12 text-center rounded-2xl">
+              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
+              <p className="text-muted-foreground">No incidents reported yet. Help improve your community by reporting issues!</p>
+            </div>
+          )}
+        </motion.div>
       </div>
     </section>
   );
