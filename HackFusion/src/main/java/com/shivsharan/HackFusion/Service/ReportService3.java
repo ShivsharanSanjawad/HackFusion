@@ -29,8 +29,8 @@ public class ReportService3 {
     public byte[] getPDFReport(UUID reportId){
         return documentService.generatePdfFromTemplate(reportId);
     }
-    public void getCompleteReport(UUID reportId){
-        // I want you to return entire Report Object
+    public Report getCompleteReport(UUID reportId){
+        return reportRepository.findById(reportId).get();
     }
     public List<Report> getReportsOfUser(UUID userId)
     {
