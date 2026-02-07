@@ -12,7 +12,15 @@ public class ReportService {
     public Report save(ReportRequest dto){
         return null ;
     }
-    public void getReports(UUID id){
-        
+    public void getReports(UUID departmentId){
+
     }
+
+    public void getReportStatus(UUID reportId){
+
+    }
+    public void getWorkers(UUID departmentId){
+
+    }
+
 }

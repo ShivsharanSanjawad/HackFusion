@@ -31,11 +31,10 @@ public class ReportController {
     }
 
     @GetMapping("/getReportStatus")
-    public ResponseEntity reportStatus(@RequestParam UUID id){
-        reportService.getReports(id) ;
+    public ResponseEntity reportStatus(@RequestParam UUID reportid){
+        reportService.getReportStatus(reportid) ;
         return ResponseEntity.ok().body("Jell");
     }
-
 
 
 
