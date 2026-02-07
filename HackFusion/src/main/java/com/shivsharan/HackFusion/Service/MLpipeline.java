@@ -3,7 +3,9 @@ package com.shivsharan.HackFusion.Service;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
 import jakarta.ws.rs.client.Entity;
+import org.apache.logging.log4j.simple.SimpleLogger;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,7 @@ import java.util.List;
 public class MLpipeline {
 
     private final ChatClient chatClient;
-    private Logger logger;
+    private Logger logger = LoggerFactory.getLogger(MLpipeline.class);
 
     @Autowired
     public MLpipeline(ChatClient.Builder builder) {
@@ -123,7 +125,7 @@ public class MLpipeline {
                     .call()
                     .entity(ClassificationDetailsDto.class);
 
-            logger.info(c.toString());
+            logger.info("dep:" + c.getFinalDepartment() + "\ndesc:" + c.getFinalDescription() + "\nprior:" + c.getFinalPriority() + "\nconfidenceScore:" + c.getConfidenceScore());
             return c;
 
         } catch (Exception e) {

@@ -1,8 +1,10 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
+import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
 import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.DepartmentService;
+import com.shivsharan.HackFusion.Service.MLpipeline;
 import com.shivsharan.HackFusion.Service.OperatorsService;
 import com.shivsharan.HackFusion.Service.ReportService;
 import org.telegram.abilitybots.api.db.DBContext;
@@ -24,7 +26,8 @@ public class ResponseHandler {
     // Services
     private final DepartmentService departmentService;
     private final ReportService reportService;
-    private OperatorsService operatorsService;
+    private final OperatorsService operatorsService;
+    private final MLpipeline mLpipeline;
 
     public enum UserState {
         START,
@@ -38,7 +41,10 @@ public class ResponseHandler {
 
     // Constructor: Inject Services here to ensure they are not null
     public ResponseHandler(SilentSender silent, DBContext db, IssueBot bot,
-                           DepartmentService departmentService, ReportService reportService, OperatorsService operatorsService) {
+                           DepartmentService departmentService,
+                           ReportService reportService, OperatorsService operatorsService,
+                           MLpipeline mLpipeline
+    ) {
         this.silent = silent;
         this.chatStates = db.getMap("USER_STATES");
         this.reportDrafts = new HashMap<>();
@@ -46,6 +52,7 @@ public class ResponseHandler {
         this.departmentService = departmentService;
         this.reportService = reportService;
         this.operatorsService = operatorsService;
+        this.mLpipeline = mLpipeline;
     }
 
     // --- STEP 1: START ---
@@ -53,12 +60,13 @@ public class ResponseHandler {
         silent.send("Welcome to the Civil Issue Reporting System.\n\nPlease providing a brief description of the issue.", chatId);
         chatStates.put(chatId, UserState.AWAITING_DESCRIPTION);
         reportDrafts.put(chatId, new Report());
-        if(operatorsService.findByUsername(String.valueOf(chatId)) != null){
+        if(operatorsService.findByUsername(String.valueOf(chatId)) == null){
             Operators operators = new Operators();
             operators.setJoinDate(LocalDate.now());
             operators.setRole("Citizen");
             operators.setDepartment(null);
             operators.setUsername(String.valueOf(chatId));
+            operatorsService.save(operators);
         }
     }
 
@@ -133,6 +141,7 @@ public class ResponseHandler {
                     Location loc = update.getMessage().getLocation();
                     report.setLat(loc.getLatitude());
                     report.setLon(loc.getLongitude());
+                    chatStates.put(chatId, UserState.AWAITING_IMAGE);
                     proceedToImage(chatId, report);
                 }
                 else if (update.getMessage().hasText()) {
@@ -142,6 +151,7 @@ public class ResponseHandler {
                     // Append address to description since we lack coordinates
                     String currentDesc = report.getDescription();
                     report.setDescription(currentDesc + " [Address: " + update.getMessage().getText() + "]");
+                    chatStates.put(chatId, UserState.AWAITING_IMAGE);
 
                     silent.send("Location text recorded. Note: GPS coordinates are preferred for accuracy.", chatId);
                     proceedToImage(chatId, report);
@@ -162,6 +172,7 @@ public class ResponseHandler {
 
                     finalizeAndSaveReport(chatId, report, photoUrl);
 
+                    chatStates.put(chatId, UserState.COMPLETED);
                     chatStates.remove(chatId);
                     reportDrafts.remove(chatId);
                 } else {
@@ -169,6 +180,8 @@ public class ResponseHandler {
                 }
                 break;
 
+            case COMPLETED:
+                chatStates.put(chatId, UserState.START);
             default:
                 silent.send("Session expired or invalid state. Type /start to begin.", chatId);
                 break;
@@ -191,14 +204,21 @@ public class ResponseHandler {
             reportRequest.setLat(report.getLat());
             reportRequest.setLon(report.getLon());
             reportRequest.setMedia_url(Collections.singletonList(photoUrl));
-            reportRequest.setDepartment_id(null);
             reportRequest.setUsername(String.valueOf(chatId));
-            reportService.save(reportRequest);
+
+
+            reportRequest.setDepartment_id(null);
+
+            report = reportService.save(reportRequest);
+
+            ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(report);
+            report.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
+            report.setPriority(classificationDetailsDto.getFinalPriority());
 
             String confirmation = String.format(
                     "Report Registered Successfully.\n\nID: %s\nDepartment: %s\nStatus: %s\nView Image: %s",
-                    report.getId() != null ? report.getId().toString() : "Pending",
-                    report.getDepartment().getName(),
+                    report.getId().toString(),
+                    report.getDepartment() == null ?" ": report.getDepartment().getName(),
                     report.getStatus(),
                     photoUrl
             );

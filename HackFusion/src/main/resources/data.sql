@@ -1,74 +1,63 @@
 INSERT INTO departments (id, name) VALUES
-                                       (gen_random_uuid(), 'BMC'),
-                                       (gen_random_uuid(), 'MMRDA'),
-                                       (gen_random_uuid(), 'MMRCL'),
-                                       (gen_random_uuid(), 'BEST'),
-                                       (gen_random_uuid(), 'Police Department'),
-                                       (gen_random_uuid(), 'Public Works Department');
-INSERT INTO operators (id, username, role, join_date, department_id)
-VALUES
-    -- Workers for BMC
-    (gen_random_uuid(), 'rahul_bmc', 'Field Engineer', '2024-01-15', (SELECT id FROM departments WHERE name = 'BMC')),
-    (gen_random_uuid(), 'priya_bmc', 'Supervisor', '2023-11-20', (SELECT id FROM departments WHERE name = 'BMC')),
+                                       ('550e8400-e29b-41d4-a716-446655440000', 'Engineering'),
+                                       ('7c9e6679-7425-40de-944b-e07fc1f90ae7', 'Operations'),
+                                       ('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6', 'Data Science');
 
-    -- Workers for MMRDA
-    (gen_random_uuid(), 'amit_mmrda', 'Technician', '2024-02-10', (SELECT id FROM departments WHERE name = 'MMRDA')),
-    (gen_random_uuid(), 'sara_mmrda', 'Manager', '2023-05-12', (SELECT id FROM departments WHERE name = 'MMRDA')),
+INSERT INTO operators (id, username, role, join_date, department_id) VALUES
 
-    -- Workers for BEST
-    (gen_random_uuid(), 'vikram_best', 'Line Worker', '2024-01-05', (SELECT id FROM departments WHERE name = 'BEST')),
-    (gen_random_uuid(), 'anita_best', 'Dispatcher', '2023-08-15', (SELECT id FROM departments WHERE name = 'BEST')),
+('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'alice_tech', 'Staff', '2023-01-15', '550e8400-e29b-41d4-a716-446655440000'),
 
-    -- Workers for MMRCL
-    (gen_random_uuid(), 'raj_mmrcl', 'Safety Officer', '2024-03-01', (SELECT id FROM departments WHERE name = 'MMRCL'));
-INSERT INTO reports (
-    id, description, entry_date, issue_since, lat, lon,
-    media_url, pdf_url, priority, status, upvotes,
-    department_id, operator_id, assigned_id
-) VALUES
--- 1. BMC - Water Leakage
-(gen_random_uuid(), 'Major water pipe burst near Dadar Station', CURRENT_DATE, '2026-02-05', 19.0178, 72.8478, ARRAY['http://img.com/water1.jpg'], NULL, 1, 'PENDING', 45,
- (SELECT id FROM departments WHERE name = 'BMC'), (SELECT id FROM operators WHERE username = 'rahul_bmc'), (SELECT id FROM operators WHERE username = 'priya_bmc')),
+('b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'bob_ops', 'Staff', '2023-03-22', '7c9e6679-7425-40de-944b-e07fc1f90ae7'),
 
--- 2. BMC - Garbage Collection
-(gen_random_uuid(), 'Unattended garbage pile in Dharavi sector 3', CURRENT_DATE, '2026-02-06', 19.0380, 72.8538, ARRAY['http://img.com/trash.jpg'], NULL, 3, 'ASSIGNED', 12,
- (SELECT id FROM departments WHERE name = 'BMC'), (SELECT id FROM operators WHERE username = 'priya_bmc'), (SELECT id FROM operators WHERE username = 'rahul_bmc')),
+('6d7e8f9a-0b1c-2d3e-4f5g-6h7i8j9k0l1m', 'charlie_data', 'Staff', '2023-06-10', 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6');
 
--- 3. MMRDA - Metro Pillar Crack
-(gen_random_uuid(), 'Surface cracks observed on Metro Pillar 402', CURRENT_DATE, '2026-01-20', 19.1176, 72.8480, ARRAY['http://img.com/pillar.jpg'], 'http://docs.com/structural_report.pdf', 1, 'IN_PROGRESS', 89,
- (SELECT id FROM departments WHERE name = 'MMRDA'), (SELECT id FROM operators WHERE username = 'amit_mmrda'), (SELECT id FROM operators WHERE username = 'sara_mmrda')),
+INSERT INTO reports (id, description, entry_date, issue_since, lat, lon, priority, status, upvotes, department_id, operator_id, assigned_id) VALUES
+-- Reports for Alice (Engineering - Mumbai South/Central)
+('11111111-1111-4111-a111-111111111111', 'Structural cracks on Marine Drive promenade', '2024-01-01', '2023-12-25', 18.9440, 72.8230, 1, 'OPEN', 12, '550e8400-e29b-41d4-a716-446655440000', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479'),
+('22222222-2222-4222-a222-222222222222', 'Severe pothole near Dadar Station', '2024-01-02', '2024-01-01', 19.0178, 72.8478, 3, 'IN_PROGRESS', 5, '550e8400-e29b-41d4-a716-446655440000', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479'),
+('33333333-3333-4333-a333-333333333333', 'Traffic signal sync error in Worli', '2024-01-03', '2024-01-03', 19.0110, 72.8150, 2, 'OPEN', 8, '550e8400-e29b-41d4-a716-446655440000', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479'),
 
--- 4. BEST - Power Outage
-(gen_random_uuid(), 'Street lights not working on Link Road', CURRENT_DATE, '2026-02-07', 19.1860, 72.8485, ARRAY['http://img.com/dark.jpg'], NULL, 2, 'PENDING', 8,
- (SELECT id FROM departments WHERE name = 'BEST'), (SELECT id FROM operators WHERE username = 'vikram_best'), (SELECT id FROM operators WHERE username = 'anita_best')),
+-- Reports for Bob (Operations - Western Suburbs)
+('44444444-4444-4444-a444-444444444444', 'Transformer sparking near Bandra Reclamation', '2024-01-05', '2024-01-04', 19.0400, 72.8200, 1, 'OPEN', 25, '7c9e6679-7425-40de-944b-e07fc1f90ae7', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f'),
+('55555555-5555-4555-a555-555555555555', 'Street lights non-functional in Andheri West', '2024-01-06', '2024-01-05', 19.1200, 72.8300, 3, 'OPEN', 3, '7c9e6679-7425-40de-944b-e07fc1f90ae7', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f'),
+('66666666-6666-4666-a666-666666666666', 'Cable vault fire hazard in Borivali', '2024-01-07', '2024-01-07', 19.2300, 72.8500, 2, 'RESOLVED', 0, '7c9e6679-7425-40de-944b-e07fc1f90ae7', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f'),
 
--- 5. MMRCL - Noise Complaint
-(gen_random_uuid(), 'Late night drilling noise beyond 10PM', CURRENT_DATE, '2026-02-01', 18.9322, 72.8264, NULL, NULL, 3, 'CLOSED', 4,
- (SELECT id FROM departments WHERE name = 'MMRCL'), (SELECT id FROM operators WHERE username = 'raj_mmrcl'), (SELECT id FROM operators WHERE username = 'raj_mmrcl')),
+-- Reports for Charlie (Data Science - Eastern Suburbs/Navi Mumbai)
+('77777777-7777-4777-a777-777777777777', 'Major water pipeline leak in Ghatkopar', '2024-01-10', '2024-01-10', 19.0860, 72.9080, 1, 'OPEN', 50, 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a'),
+('88888888-8888-4888-a888-888888888888', 'Contamination alert - Vihar Lake feeder', '2024-01-11', '2024-01-11', 19.1480, 72.9000, 1, 'IN_PROGRESS', 100, 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a'),
+('99999999-9999-4999-a999-999999999999', 'Low water pressure reported in Powai', '2024-01-12', '2024-01-08', 19.1190, 72.9050, 2, 'OPEN', 15, 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a', '6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a');
 
--- 6. BMC - Pothole
-(gen_random_uuid(), 'Deep pothole causing traffic at JVLR', CURRENT_DATE, '2026-01-15', 19.1271, 72.8727, ARRAY['http://img.com/hole.jpg'], NULL, 1, 'ASSIGNED', 156,
- (SELECT id FROM departments WHERE name = 'BMC'), (SELECT id FROM operators WHERE username = 'rahul_bmc'), (SELECT id FROM operators WHERE username = 'priya_bmc')),
+INSERT INTO report_status_history (id, status_date, status, report_id) VALUES
+-- Report 1: OPEN
+('b1111111-1111-4111-b111-111111111111', '2024-01-01', 'OPEN', '11111111-1111-4111-a111-111111111111'),
 
--- 7. BEST - Bus Stop Damage
-(gen_random_uuid(), 'Broken bench and roof at Mahim Bus Stop', CURRENT_DATE, '2026-02-04', 19.0354, 72.8404, ARRAY['http://img.com/stop.jpg'], NULL, 3, 'PENDING', 15,
- (SELECT id FROM departments WHERE name = 'BEST'), (SELECT id FROM operators WHERE username = 'anita_best'), (SELECT id FROM operators WHERE username = 'vikram_best')),
+-- Report 2: IN_PROGRESS
+('b2111111-2222-4222-b222-222222222222', '2024-01-02', 'OPEN', '22222222-2222-4222-a222-222222222222'),
+('b2222222-2222-4222-b222-222222222222', '2024-01-03', 'ASSIGNED', '22222222-2222-4222-a222-222222222222'),
+('b2333333-2222-4222-b222-222222222222', '2024-01-04', 'IN PROGRESS', '22222222-2222-4222-a222-222222222222'),
 
--- 8. MMRDA - Road Blockage
-(gen_random_uuid(), 'Construction material dumping on highway', CURRENT_DATE, '2026-02-06', 19.0626, 72.8729, ARRAY['http://img.com/blocks.jpg'], NULL, 2, 'PENDING', 22,
- (SELECT id FROM departments WHERE name = 'MMRDA'), (SELECT id FROM operators WHERE username = 'sara_mmrda'), (SELECT id FROM operators WHERE username = 'amit_mmrda')),
+-- Report 3: OPEN
+('b3111111-3333-4333-b333-333333333333', '2024-01-03', 'OPEN', '33333333-3333-4333-a333-333333333333'),
 
--- 9. MMRCL - Tunnel Seepage
-(gen_random_uuid(), 'Minor water seepage in tunnel section B', CURRENT_DATE, '2026-01-10', 19.0433, 72.8230, ARRAY['http://img.com/seep.jpg'], 'http://docs.com/tunnel_safety.pdf', 1, 'IN_PROGRESS', 5,
- (SELECT id FROM departments WHERE name = 'MMRCL'), (SELECT id FROM operators WHERE username = 'raj_mmrcl'), (SELECT id FROM operators WHERE username = 'raj_mmrcl')),
+-- Report 4: OPEN
+('b4111111-4444-4444-b444-444444444444', '2024-01-05', 'OPEN', '44444444-4444-4444-a444-444444444444'),
 
--- 10. BMC - Tree Fall
-(gen_random_uuid(), 'Old Banyan tree fell blocking lane 4', CURRENT_DATE, '2026-02-07', 18.9440, 72.8235, ARRAY['http://img.com/tree.jpg'], NULL, 1, 'PENDING', 34,
- (SELECT id FROM departments WHERE name = 'BMC'), (SELECT id FROM operators WHERE username = 'priya_bmc'), (SELECT id FROM operators WHERE username = 'rahul_bmc'));
-INSERT INTO report_status_history (id, report_id, status, status_date)
-VALUES
-    (gen_random_uuid(), '57f5a360-df28-48cd-a31f-198d94a78473', 'REPORT_LOGGED', '2026-02-07'),
-    (gen_random_uuid(), '57f5a360-df28-48cd-a31f-198d94a78473', 'UNDER_REVIEW', '2026-02-07'),
-    (gen_random_uuid(), '57f5a360-df28-48cd-a31f-198d94a78473', 'DEPARTMENT_NOTIFIED', '2026-02-07'),
-    (gen_random_uuid(), '57f5a360-df28-48cd-a31f-198d94a78473', 'OPERATOR_ASSIGNED', '2026-02-07'),
-    (gen_random_uuid(), '57f5a360-df28-48cd-a31f-198d94a78473', 'SITE_INSPECTION_STARTED', '2026-02-07');
+-- Report 5: OPEN
+('b5111111-5555-4555-b555-555555555555', '2024-01-06', 'OPEN', '55555555-5555-4555-a555-555555555555'),
+
+-- Report 6: RESOLVED
+('b6111111-6666-4666-b666-666666666666', '2024-01-07', 'OPEN', '66666666-6666-4666-a666-666666666666'),
+('b6222222-6666-4666-b666-666666666666', '2024-01-08', 'ASSIGNED', '66666666-6666-4666-a666-666666666666'),
+('b6333333-6666-4666-b666-666666666666', '2024-01-09', 'IN PROGRESS', '66666666-6666-4666-a666-666666666666'),
+('b6444444-6666-4666-b666-666666666666', '2024-01-10', 'RESOLVED', '66666666-6666-4666-a666-666666666666'),
+
+-- Report 7: OPEN
+('b7111111-7777-4777-b777-777777777777', '2024-01-10', 'OPEN', '77777777-7777-4777-a777-777777777777'),
+
+-- Report 8: IN_PROGRESS
+('b8111111-8888-4888-b888-888888888888', '2024-01-11', 'OPEN', '88888888-8888-4888-a888-888888888888'),
+('b8222222-8888-4888-b888-888888888888', '2024-01-12', 'ASSIGNED', '88888888-8888-4888-a888-888888888888'),
+('b8333333-8888-4888-b888-888888888888', '2024-01-13', 'IN PROGRESS', '88888888-8888-4888-a888-888888888888'),
+
+-- Report 9: OPEN
+('b9111111-9999-4999-b999-999999999999', '2024-01-12', 'OPEN', '99999999-9999-4999-a999-999999999999');
