@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -42,7 +43,7 @@ public class ReportController2 {
 
     @GetMapping("/getReport")
     public ResponseEntity getUpvotes(@RequestParam UUID reportID){
-        reportService3.getCompleteReport(reportID);
-        return ResponseEntity.ok().body("REPO");
+        Report ret = reportService3.getCompleteReport(reportID);
+        return ResponseEntity.ok().body(ret);
     }
 }
