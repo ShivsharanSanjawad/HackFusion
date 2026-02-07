@@ -17,9 +17,12 @@ import {
   Phone,
   MapPinned,
   Zap,
+  Edit3,
+  X,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents } from '@/contexts/IncidentContext';
@@ -27,10 +30,13 @@ import { IncidentMap } from '@/components/IncidentMap';
 import { cn } from '@/lib/utils';
 
 interface UpdateMetadata {
-  status: 'in-progress' | 'on-hold' | 'resolved';
+  status: 'in-progress' | 'update-status' | 'resolved';
   notes: string;
   photoCount?: number;
   timestamp: string;
+  newStatus?: string;
+  updateDate?: string;
+  images?: File[];
 }
 
 export default function FieldStaffDashboard() {
@@ -39,10 +45,13 @@ export default function FieldStaffDashboard() {
   const [isOnline, setIsOnline] = useState(true);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showUpdatePanel, setShowUpdatePanel] = useState(false);
+  const [updateType, setUpdateType] = useState<'in-progress' | 'update-status' | 'resolved' | null>(null);
   const [updateData, setUpdateData] = useState<Partial<UpdateMetadata>>({
     notes: '',
     photoCount: 0,
+    images: [],
   });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const userDepartment = user?.department;
   const assignedTasks = useMemo(() => {
@@ -64,9 +73,15 @@ export default function FieldStaffDashboard() {
     };
   }, [assignedTasks]);
 
-  const handleStatusUpdate = (newStatus: 'in-progress' | 'on-hold' | 'resolved') => {
+  const handleStatusUpdate = (newStatus: 'in-progress' | 'update-status' | 'resolved') => {
     if (!selectedIncident) return;
-    setUpdateData({ ...updateData, status: newStatus, timestamp: new Date().toISOString() });
+    setUpdateType(newStatus);
+    setUpdateData({ 
+      ...updateData, 
+      status: newStatus, 
+      timestamp: new Date().toISOString(),
+      images: []
+    });
     setShowUpdatePanel(true);
   };
 
@@ -299,16 +314,14 @@ export default function FieldStaffDashboard() {
                         <span>In Progress</span>
                       </button>
                       <button
-                        onClick={() => handleStatusUpdate('on-hold')}
+                        onClick={() => handleStatusUpdate('update-status')}
                         className={cn(
                           'p-3 rounded-xl font-medium text-sm transition-all flex flex-col items-center gap-1',
-                          selectedIncident.status === 'on-hold'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-muted hover:bg-amber-500/20'
+                          'bg-muted hover:bg-blue-500/20'
                         )}
                       >
-                        <Clock className="w-4 h-4" />
-                        <span>On Hold</span>
+                        <Edit3 className="w-4 h-4" />
+                        <span>Update Status</span>
                       </button>
                       <button
                         onClick={() => handleStatusUpdate('resolved')}
@@ -326,6 +339,201 @@ export default function FieldStaffDashboard() {
                   </div>
                 </motion.div>
 
+                {/* Progress Update Panel - BEFORE Map */}
+                <AnimatePresence>
+                  {showUpdatePanel && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      className="glass-card p-6 rounded-2xl space-y-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold">
+                          {updateType === 'update-status' && 'Update Status'}
+                          {updateType === 'resolved' && 'Mark as Resolved'}
+                          {updateType === 'in-progress' && 'In Progress Update'}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setShowUpdatePanel(false);
+                            setUpdateType(null);
+                          }}
+                          className="p-1 hover:bg-muted rounded-lg transition-colors"
+                        >
+                          <X className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Update Status Form */}
+                        {updateType === 'update-status' && (
+                          <>
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                New Status
+                              </label>
+                              <select
+                                value={updateData.newStatus || ''}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, newStatus: e.target.value })
+                                }
+                                className="w-full px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted/50"
+                              >
+                                <option value="">Select Status</option>
+                                <option value="reported">Reported</option>
+                                <option value="verified">Verified</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="on-hold">On Hold</option>
+                                <option value="resolved">Resolved</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Current Date
+                              </label>
+                              <Input
+                                type="date"
+                                value={updateData.updateDate || new Date().toISOString().split('T')[0]}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, updateDate: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Description / Notes
+                              </label>
+                              <Textarea
+                                placeholder="Describe the status update..."
+                                value={updateData.notes || ''}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, notes: e.target.value })
+                                }
+                                rows={4}
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* Resolved Form */}
+                        {updateType === 'resolved' && (
+                          <>
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Resolution Date
+                              </label>
+                              <Input
+                                type="date"
+                                value={updateData.updateDate || new Date().toISOString().split('T')[0]}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, updateDate: e.target.value })
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Description / Resolution Details
+                              </label>
+                              <Textarea
+                                placeholder="Describe how the issue was resolved..."
+                                value={updateData.notes || ''}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, notes: e.target.value })
+                                }
+                                rows={4}
+                              />
+                            </div>
+
+                            {/* Photo Upload Area */}
+                            <div>
+                              <label className="text-sm font-medium mb-2 block">
+                                Before/After Photos
+                              </label>
+                              <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-2 border-dashed border-primary/30 rounded-xl p-8 text-center hover:bg-primary/5 transition-colors cursor-pointer"
+                              >
+                                <Camera className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-sm font-medium mb-1">Click to upload photos</p>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  or drag and drop
+                                </p>
+                                <p className="text-xs font-semibold text-primary">
+                                  {(updateData.images?.length || 0)} photo(s) selected
+                                </p>
+                              </motion.div>
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  if (e.target.files) {
+                                    setUpdateData({
+                                      ...updateData,
+                                      images: Array.from(e.target.files),
+                                      photoCount: e.target.files.length,
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* In Progress Form */}
+                        {updateType === 'in-progress' && (
+                          <>
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                                Work Notes
+                              </label>
+                              <Textarea
+                                placeholder="Describe what you've done or your observations..."
+                                value={updateData.notes || ''}
+                                onChange={(e) =>
+                                  setUpdateData({ ...updateData, notes: e.target.value })
+                                }
+                                rows={4}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-4 border-t border-border">
+                        <Button
+                          className="flex-1 bg-gradient-primary hover:opacity-90"
+                          onClick={() => {
+                            setShowUpdatePanel(false);
+                            setUpdateType(null);
+                            setUpdateData({ notes: '', photoCount: 0, images: [] });
+                          }}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Submit Update
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setShowUpdatePanel(false);
+                            setUpdateType(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Map View */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -342,89 +550,6 @@ export default function FieldStaffDashboard() {
                     {selectedIncident.location.address}
                   </p>
                 </motion.div>
-
-                {/* Progress Update Panel */}
-                <AnimatePresence>
-                  {showUpdatePanel && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      className="glass-card p-6 rounded-2xl space-y-4"
-                    >
-                      <h3 className="font-semibold">Work Update</h3>
-
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                            Work Notes
-                          </label>
-                          <Textarea
-                            placeholder="Describe what you've done or your observations..."
-                            value={updateData.notes || ''}
-                            onChange={(e) =>
-                              setUpdateData({ ...updateData, notes: e.target.value })
-                            }
-                            className="text-sm"
-                          />
-                        </div>
-
-                        {/* Photo Upload Area */}
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                            Before/After Photos
-                          </label>
-                          <div className="border-2 border-dashed border-primary/30 rounded-xl p-6 text-center hover:bg-primary/5 transition-colors cursor-pointer">
-                            <Camera className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground mb-1">Tap camera for photo</p>
-                            <p className="text-xs font-medium text-primary">
-                              {updateData.photoCount || 0} photos
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Time Logging */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                              Start Time
-                            </label>
-                            <input
-                              type="time"
-                              className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                              End Time
-                            </label>
-                            <input
-                              type="time"
-                              className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          className="flex-1 bg-gradient-primary hover:opacity-90"
-                          onClick={() => setShowUpdatePanel(false)}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          Submit Update
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => setShowUpdatePanel(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </>
             ) : (
               <motion.div

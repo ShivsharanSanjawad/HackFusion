@@ -1,23 +1,8 @@
 import React, { useRef, Suspense } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  Zap,
-  Droplets,
-  Construction,
-  Trash2,
-  Lightbulb,
-  Shield,
-  Users,
-  Clock,
-  CheckCircle2,
-  TrendingUp,
-  MapPin,
-  ThumbsUp,
-  BarChart3,
-  Award,
-} from 'lucide-react';
+import {ArrowRight,Zap,Droplets,Construction,Trash2,Lightbulb,Shield,Users,Clock,
+  CheckCircle2,TrendingUp,MapPin,ThumbsUp,BarChart3,Award,} from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { GlassCard, HexagonCard, FloatingActionButton } from '@/components/ui/cards';

@@ -47,6 +47,4 @@ public class Report {
     private double lat;
 
     private double lon;
-
-    private String pdf_url;
 }
