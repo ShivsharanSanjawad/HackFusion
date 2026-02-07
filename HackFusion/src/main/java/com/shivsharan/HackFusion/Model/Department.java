@@ -15,4 +15,6 @@ public class Department {
 
     @Column(unique = true, nullable = false)
     private String name;
+
+
 }
