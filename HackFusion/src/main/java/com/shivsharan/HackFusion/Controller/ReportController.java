@@ -6,6 +6,7 @@ import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
 import com.shivsharan.HackFusion.Service.MLpipeline;
 import com.shivsharan.HackFusion.Service.ReportService;
+import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,9 @@ public class ReportController {
     ReportService reportService ;
 
     @Autowired
+    ReportService3 reportService3 ;
+
+    @Autowired
     MLpipeline mLpipeline ;
 
     @PostMapping("/report")
@@ -38,6 +42,11 @@ public class ReportController {
         return ResponseEntity.ok().body(ret);
     }
 
+    @GetMapping("/getReports")
+    public ResponseEntity getReportsOfUser(@RequestParam UUID userId){
+        reportService3.getReportsOfUser(userId);
+        return ResponseEntity.ok().body("ALL REPORTS");
+    }
 
 
 }
