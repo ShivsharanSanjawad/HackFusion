@@ -27,4 +27,10 @@ public class Report {
     private String status;
 
     private int priority;
+
+    private int upvotes;
+
+    private double lat;
+
+    private double lon;
 }

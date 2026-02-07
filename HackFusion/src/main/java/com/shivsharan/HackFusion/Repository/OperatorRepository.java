@@ -1,0 +1,9 @@
+package com.shivsharan.HackFusion.Repository;
+
+import com.shivsharan.HackFusion.Model.Operators;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.UUID;
+
+public interface OperatorRepository extends JpaRepository<Operators, UUID> {
+}
