@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Filter,
@@ -65,6 +65,8 @@ export default function AuthorityDashboard() {
     assignmentStatus: null,
   });
   const [expandedMetrics, setExpandedMetrics] = useState<string | null>(null);
+  const [apiReports, setApiReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [collabModal, setCollabModal] = useState<CollabModalState>({
     isOpen: false,
     incident: null,
@@ -77,8 +79,62 @@ export default function AuthorityDashboard() {
     step: 'select-incident',
   });
 
+  // Fetch all reports from API
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/getReports', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('All Reports from API:', data);
+        setApiReports(data);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        setApiReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
   const userDepartment = user?.department;
-  const departmentIncidents = incidents.filter(
+  
+  // Combine hardcoded incidents with API reports
+  const allIncidents = useMemo(() => {
+    const apiIncidents = apiReports.map((report: any) => ({
+      id: report.id,
+      title: report.title || report.description || 'Untitled Report',
+      description: report.description || '',
+      category: report.category || 'Other',
+      priority: report.priority ? String(report.priority).toLowerCase() as IncidentPriority : 'medium',
+      status: report.status ? String(report.status).toLowerCase() as IncidentStatus : 'reported',
+      location: {
+        address: report.location?.address || report.address || 'Unknown Location',
+        lat: report.location?.lat || report.lat || 0,
+        lng: report.location?.lng || report.lon || report.lng || 0,
+      },
+      assignedTo: report.assignedTo || null,
+      upvotes: report.upvotes || 0,
+      createdAt: report.createdAt || report.entryDate || new Date().toISOString(),
+      department: report.department || userDepartment || '',
+      ...report
+    }));
+    
+    return [...incidents, ...apiIncidents];
+  }, [incidents, apiReports, userDepartment]);
+
+  const departmentIncidents = allIncidents.filter(
     i => i.department === userDepartment || !i.department
   );
 
@@ -768,12 +824,12 @@ export default function AuthorityDashboard() {
             </DialogHeader>
 
             {assignWorkerModal.step === 'select-incident' ? (
-              // Step 1: Select Incident
+              // Step 1: Select Incident - Show all department incidents
               <div className="space-y-3">
-                <label className="text-sm font-medium">Available Incidents</label>
+                <label className="text-sm font-medium">Available Incidents (All Reports)</label>
                 <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                  {filteredIncidents.length > 0 ? (
-                    filteredIncidents.map((incident) => (
+                  {departmentIncidents.length > 0 ? (
+                    departmentIncidents.map((incident) => (
                       <motion.div
                         key={incident.id}
                         whileHover={{ scale: 1.02 }}
