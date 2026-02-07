@@ -1,20 +1,16 @@
 package com.shivsharan.HackFusion.DTO;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
+import lombok.*;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class DepartmentRankDTO {
-
     private UUID departmentId;
     private String departmentName;
-
-    private long totalReports;
-    private long resolvedReports;
-    private long unresolvedReports;
-
-    private double avgResolutionDays;
+    private Long totalReports;
+    private Long resolvedReports;
+    private Long unresolvedReports;
+    private Double avgResolutionTimeInDays;
 }

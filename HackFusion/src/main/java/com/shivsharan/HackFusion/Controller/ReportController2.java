@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -29,8 +31,8 @@ public class ReportController2 {
 
     @GetMapping("/getDepartmentsRankWise")
     public ResponseEntity getDepartmentsRankWise(){
-        reportService3.getDepartmentsRankWise();
-        return ResponseEntity.ok().build() ;
+        List<DepartmentRankDTO> ret = reportService3.getDepartmentsRankWise();
+        return ResponseEntity.ok().body(ret) ;
     }
     @GetMapping("/getPDFReport")
     public ResponseEntity getPDFReport(@RequestParam UUID reportID){

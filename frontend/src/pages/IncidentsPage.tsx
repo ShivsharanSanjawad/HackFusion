@@ -1,7 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/Sidebar';
-import { IncidentCard } from '@/components/IncidentCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,20 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useIncidents } from '@/contexts/IncidentContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const categoryConfig = {
-  'road-damage': { label: 'Road Damage', color: 'from-red-500 to-orange-500' },
-  'pothole': { label: 'Pothole', color: 'from-orange-500 to-yellow-500' },
-  'water-leak': { label: 'Water Leak', color: 'from-blue-500 to-cyan-500' },
-  'broken-light': { label: 'Broken Light', color: 'from-yellow-500 to-orange-500' },
-  'garbage': { label: 'Garbage', color: 'from-green-500 to-emerald-500' },
-  'drainage': { label: 'Drainage', color: 'from-cyan-500 to-blue-500' },
-  'other': { label: 'Other', color: 'from-gray-500 to-slate-500' },
-};
+interface ApiIncident {
+  description: string;
+  id: string;
+  issueSince: string;
+  department: string;
+  status: string;
+  priority: string;
+  upvotes: number;
+  pdf_url?: string;
+}
 
 const statusConfig = {
   'reported': { label: 'Reported', color: '#ef4444' },
@@ -41,42 +40,98 @@ const priorityColors = {
 };
 
 export function IncidentsPage() {
-  const { incidents } = useIncidents();
   const { user } = useAuth();
+  const [incidents, setIncidents] = useState<ApiIncident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
 
-  // Filter incidents for current user's department
+  // Fetch incidents from API
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('http://localhost:8080/getAll', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setIncidents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch incidents:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load incidents');
+        setIncidents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIncidents();
+  }, []);
+
+  // Get unique departments and statuses for filters
+  const departments = useMemo(() => {
+    return ['all', ...new Set(incidents.map(i => i.department))];
+  }, [incidents]);
+
+  // Filter incidents
   const filteredIncidents = useMemo(() => {
-    return incidents
-      .filter((incident) =>
-        user?.department ? incident.department === user.department : true
-      )
-      .filter((incident) => {
-        const matchesSearch = incident.title
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-          incident.location.address
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
+    return incidents.filter((incident) => {
+      const matchesSearch = incident.description
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+        incident.id.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesCategory =
-          selectedCategory === 'all' || incident.category === selectedCategory;
-        const matchesStatus =
-          selectedStatus === 'all' || incident.status === selectedStatus;
-        const matchesPriority =
-          selectedPriority === 'all' || incident.priority === selectedPriority;
+      const matchesDepartment =
+        selectedDepartment === 'all' || incident.department === selectedDepartment;
+      const matchesStatus =
+        selectedStatus === 'all' || incident.status === selectedStatus;
+      const matchesPriority =
+        selectedPriority === 'all' || incident.priority === selectedPriority;
 
-        return (
-          matchesSearch &&
-          matchesCategory &&
-          matchesStatus &&
-          matchesPriority
-        );
+      return (
+        matchesSearch &&
+        matchesDepartment &&
+        matchesStatus &&
+        matchesPriority
+      );
+    });
+  }, [incidents, searchQuery, selectedDepartment, selectedStatus, selectedPriority]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       });
-  }, [incidents, searchQuery, selectedCategory, selectedStatus, selectedPriority, user?.department]);
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'resolved':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'in-progress':
+        return <AlertCircle className="w-4 h-4" />;
+      default:
+        return <AlertCircle className="w-4 h-4" />;
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -91,7 +146,7 @@ export function IncidentsPage() {
             All Incidents
           </h1>
           <p className="text-muted-foreground">
-            Manage and track all incidents in your department
+            Monitor and manage all reported incidents
           </p>
         </motion.div>
 
@@ -110,25 +165,24 @@ export function IncidentsPage() {
                 Search
               </label>
               <Input
-                placeholder="Search by title or location..."
+                placeholder="Search by ID or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-background"
               />
             </div>
 
-            {/* Category Filter */}
+            {/* Department Filter */}
             <div className="w-full md:w-48">
-              <label className="text-sm font-medium mb-2 block">Category</label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <label className="text-sm font-medium mb-2 block">Department</label>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
                 <SelectTrigger className="bg-background">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {Object.entries(categoryConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.label}
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept === 'all' ? 'All Departments' : dept}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -171,13 +225,13 @@ export function IncidentsPage() {
             </div>
 
             {/* Clear Filters Button */}
-            {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedPriority !== 'all') && (
+            {(searchQuery || selectedDepartment !== 'all' || selectedStatus !== 'all' || selectedPriority !== 'all') && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setSearchQuery('');
-                  setSelectedCategory('all');
+                  setSelectedDepartment('all');
                   setSelectedStatus('all');
                   setSelectedPriority('all');
                 }}
@@ -191,59 +245,158 @@ export function IncidentsPage() {
 
           {/* Results Count */}
           <div className="text-sm text-muted-foreground">
-            Showing {filteredIncidents.length} of {incidents.filter((i) =>
-              user?.department ? i.department === user.department : true
-            ).length} incidents
+            Showing {filteredIncidents.length} of {incidents.length} incidents
           </div>
         </motion.div>
 
+        {/* Loading State */}
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center py-12"
+          >
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </motion.div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="glass-card p-6 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950"
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-600 dark:text-red-400">Error Loading Incidents</h3>
+                <p className="text-sm text-red-500 dark:text-red-300 mt-1">{error}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Incidents Grid */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          <AnimatePresence>
-            {filteredIncidents.length > 0 ? (
-              filteredIncidents.map((incident, index) => (
+        {!loading && !error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+          >
+            <AnimatePresence>
+              {filteredIncidents.length > 0 ? (
+                filteredIncidents.map((incident, index) => (
+                  <motion.div
+                    key={incident.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="group"
+                  >
+                    <div className="glass-card rounded-lg border border-border p-5 h-full flex flex-col hover:border-primary/50 transition-all duration-200 hover:shadow-lg">
+                      {/* Header with ID and Priority */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-mono text-muted-foreground truncate">
+                            ID: {incident.id}
+                          </p>
+                        </div>
+                        <div
+                          className={cn(
+                            'px-3 py-1 rounded-full text-xs font-medium text-white whitespace-nowrap flex-shrink-0 ml-2',
+                            `bg-gradient-to-r ${priorityColors[incident.priority as keyof typeof priorityColors] || priorityColors.medium}`
+                          )}
+                        >
+                          {incident.priority}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-sm text-foreground mb-4 line-clamp-3 flex-1">
+                        {incident.description}
+                      </p>
+
+                      {/* Status and Department Row */}
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          {getStatusIcon(incident.status)}
+                          <span
+                            className="text-xs font-medium px-2 py-1 rounded-full text-white"
+                            style={{
+                              backgroundColor: statusConfig[incident.status as keyof typeof statusConfig]?.color || '#6b7280',
+                            }}
+                          >
+                            {statusConfig[incident.status as keyof typeof statusConfig]?.label || incident.status}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          {incident.department}
+                        </span>
+                      </div>
+
+                      {/* Date and Upvotes Row */}
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 pb-4 border-t border-border pt-4">
+                        <span>
+                          Reported: {formatDate(incident.issueSince)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          👍 {incident.upvotes || 0}
+                        </span>
+                      </div>
+
+                      {/* PDF Link Button */}
+                      {incident.pdf_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => window.open(incident.pdf_url, '_blank')}
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          View Report
+                        </Button>
+                      )}
+                      {!incident.pdf_url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-muted-foreground cursor-default hover:bg-transparent"
+                          disabled
+                        >
+                          No report attached
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
                 <motion.div
-                  key={incident.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: index * 0.05 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="col-span-full py-16 text-center"
                 >
-                  <IncidentCard
-                    incident={incident}
-                    variant="compact"
-                  />
+                  <p className="text-lg text-muted-foreground mb-4">
+                    No incidents found
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedDepartment('all');
+                      setSelectedStatus('all');
+                      setSelectedPriority('all');
+                    }}
+                  >
+                    Clear all filters
+                  </Button>
                 </motion.div>
-              ))
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="col-span-full py-16 text-center"
-              >
-                <p className="text-lg text-muted-foreground mb-4">
-                  No incidents found
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setSelectedStatus('all');
-                    setSelectedPriority('all');
-                  }}
-                >
-                  Clear all filters
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
       </div>
     </DashboardLayout>
   );

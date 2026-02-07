@@ -29,7 +29,6 @@ public class ReportController {
     MLpipeline mLpipeline ;
     @Autowired
     private DepartmentService departmentService;
-
     @PostMapping("/report")
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
             Report r = reportService.save(dto);
@@ -37,6 +36,12 @@ public class ReportController {
 //            r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
 //            r.setPriority(classificationDetailsDto.getFinalPriority());
             return ResponseEntity.ok().body(r.getId());
+    }
+    @GetMapping("/getAll")
+    public ResponseEntity getReport()
+    {
+        List<Report> ret = reportService.getAll();
+        return ResponseEntity.ok().body(ret);
     }
     @GetMapping("/getReportStatus")
     public ResponseEntity reportStatus(@RequestParam UUID reportid){

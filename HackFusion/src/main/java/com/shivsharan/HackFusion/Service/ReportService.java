@@ -63,6 +63,10 @@ public class ReportService {
     {
         return operatorsRepository.findByDepartment_Id(departmentId);
     }
+    public List<Report> getAll()
+    {
+        return reportRepository.findAll();
+    }
     public void assignWorker(assignDTO dto)
     {
 
