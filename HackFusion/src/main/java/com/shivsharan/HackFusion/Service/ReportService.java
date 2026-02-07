@@ -19,6 +19,7 @@ public class ReportService {
 
     public void getReportStatus(UUID reportId){
 
+
     }
     public void getWorkers(UUID departmentId){
 
