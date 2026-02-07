@@ -23,8 +23,9 @@ public class ReportService {
     ReportStatusRepository reportStatusRepository;
     @Autowired
     OperatorsRepository operatorsRepository;
-    public Report save(ReportRequest dto) {
-        return null;
+    public Report save(ReportRequest dto)
+    {
+
     }
     public List<Report> getReports(UUID departmentId)
     {
