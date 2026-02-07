@@ -14,4 +14,5 @@ public class DepartmentService {
     {
         return departmentRepository.findByName(name);
     }
+
 }
