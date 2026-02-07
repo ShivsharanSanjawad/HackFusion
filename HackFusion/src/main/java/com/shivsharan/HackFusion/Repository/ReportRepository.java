@@ -63,7 +63,6 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
         )
         FROM Report r
     """)
-    
-
     OverallStatsDTO getOverallStats(@Param("weekStart") LocalDate weekStart);
+
 }
