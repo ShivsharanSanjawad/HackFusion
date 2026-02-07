@@ -111,8 +111,8 @@ export const mockUsers: User[] = [
   },
   {
     id: 'authority-1',
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@municipality.gov',
+    name: 'Madhukar Pai',
+    email: 'madhukar.pai@municipality.gov',
     role: 'authority',
     department: 'Power Department',
     createdAt: '2023-06-10T09:00:00Z',

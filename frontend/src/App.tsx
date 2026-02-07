@@ -15,6 +15,7 @@ import CitizenDashboard from "./pages/CitizenDashboard";
 import AuthorityDashboard from "./pages/AuthorityDashboard";
 import FieldStaffDashboard from "./pages/FieldStaffDashboard";
 import MyReportsPage from "./pages/MyReportsPage";
+import { IncidentsPage } from "./pages/IncidentsPage";
 import MapViewPage from "./pages/MapViewPage";
 import NotFound from "./pages/NotFound";
 
@@ -90,6 +91,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['authority']}>
             <AuthorityDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/authority/incidents"
+        element={
+          <ProtectedRoute allowedRoles={['authority']}>
+            <IncidentsPage />
           </ProtectedRoute>
         }
       />

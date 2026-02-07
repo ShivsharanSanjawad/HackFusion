@@ -196,12 +196,6 @@ export default function FieldStaffDashboard() {
               {taskStats.total} task{taskStats.total !== 1 ? 's' : ''} assigned
             </p>
           </div>
-          {selectedIncident && (
-            <Button className="bg-gradient-primary hover:opacity-90">
-              <Phone className="w-4 h-4 mr-2" />
-              Call Supervisor
-            </Button>
-          )}
         </motion.div>
 
         {/* Quick Stats - Mobile Card Style */}

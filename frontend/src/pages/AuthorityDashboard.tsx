@@ -51,6 +51,7 @@ interface AssignWorkerModalState {
   isOpen: boolean;
   incident: Incident | null;
   selectedWorkers: string[];
+  step: 'select-incident' | 'select-workers';
 }
 
 export default function AuthorityDashboard() {
@@ -73,6 +74,7 @@ export default function AuthorityDashboard() {
     isOpen: false,
     incident: null,
     selectedWorkers: [],
+    step: 'select-incident',
   });
 
   const userDepartment = user?.department;
@@ -497,13 +499,12 @@ export default function AuthorityDashboard() {
                 variant="outline" 
                 className="w-full"
                 onClick={() => {
-                  if (filteredIncidents.length > 0) {
-                    setAssignWorkerModal({
-                      isOpen: true,
-                      incident: filteredIncidents[0],
-                      selectedWorkers: [],
-                    });
-                  }
+                  setAssignWorkerModal({
+                    isOpen: true,
+                    incident: null,
+                    selectedWorkers: [],
+                    step: 'select-incident',
+                  });
                 }}
               >
                 <UserCheck className="w-4 h-4 mr-2" />
@@ -624,20 +625,80 @@ export default function AuthorityDashboard() {
         {/* Assign Workers Modal */}
         <Dialog open={assignWorkerModal.isOpen} onOpenChange={(open) => {
           if (!open) {
-            setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] });
+            setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [], step: 'select-incident' });
           }
         }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Assign Workers</DialogTitle>
+              <DialogTitle>
+                {assignWorkerModal.step === 'select-incident' ? 'Select Incident' : 'Assign Workers'}
+              </DialogTitle>
               <DialogDescription>
-                Select workers to assign to this incident
+                {assignWorkerModal.step === 'select-incident' 
+                  ? 'Choose an incident to assign workers to'
+                  : 'Select workers to assign to this incident'}
               </DialogDescription>
             </DialogHeader>
 
-            {assignWorkerModal.incident && (
+            {assignWorkerModal.step === 'select-incident' ? (
+              // Step 1: Select Incident
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Available Incidents</label>
+                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                  {filteredIncidents.length > 0 ? (
+                    filteredIncidents.map((incident) => (
+                      <motion.div
+                        key={incident.id}
+                        whileHover={{ scale: 1.02 }}
+                        onClick={() => {
+                          setAssignWorkerModal({
+                            ...assignWorkerModal,
+                            incident,
+                            step: 'select-workers',
+                            selectedWorkers: [],
+                          });
+                        }}
+                        className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-sm">{incident.title}</h5>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {incident.location.address}
+                            </p>
+                          </div>
+                          <div
+                            className={cn(
+                              'px-2 py-1 rounded-full text-xs font-medium text-white',
+                              `bg-gradient-to-r ${priorityColors[incident.priority]}`
+                            )}
+                          >
+                            {incident.priority}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          <span className="text-xs text-muted-foreground">
+                            {incident.category}
+                          </span>
+                          {incident.assignedTo && (
+                            <span className="text-xs text-muted-foreground">
+                              📍 {incident.assignedTo.name}
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">No incidents available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : assignWorkerModal.incident ? (
+              // Step 2: Select Workers
               <div className="space-y-4">
-                {/* Incident Details */}
+                {/* Selected Incident Details */}
                 <div className="glass-card p-4 rounded-lg space-y-2 border border-border">
                   <h4 className="font-semibold text-sm">{assignWorkerModal.incident.title}</h4>
                   <p className="text-xs text-muted-foreground">
@@ -730,23 +791,23 @@ export default function AuthorityDashboard() {
                     variant="outline"
                     className="flex-1"
                     onClick={() =>
-                      setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] })
+                      setAssignWorkerModal({ ...assignWorkerModal, step: 'select-incident', selectedWorkers: [] })
                     }
                   >
-                    Cancel
+                    Back
                   </Button>
                   <Button
                     className="flex-1 bg-gradient-primary hover:opacity-90"
                     disabled={assignWorkerModal.selectedWorkers.length === 0}
                     onClick={() => {
-                      setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [] });
+                      setAssignWorkerModal({ isOpen: false, incident: null, selectedWorkers: [], step: 'select-incident' });
                     }}
                   >
                     Assign Workers
                   </Button>
                 </div>
               </div>
-            )}
+            ) : null}
           </DialogContent>
         </Dialog>
       </div>

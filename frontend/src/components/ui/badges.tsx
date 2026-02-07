@@ -152,13 +152,14 @@ interface UpvoteButtonProps {
 export function UpvoteButton({ count, onUpvote, upvoted = false }: UpvoteButtonProps) {
   return (
     <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onUpvote}
+      whileHover={!upvoted ? { scale: 1.05 } : {}}
+      whileTap={!upvoted ? { scale: 0.95 } : {}}
+      onClick={() => !upvoted && onUpvote()}
+      disabled={upvoted}
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300',
+        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer',
         upvoted
-          ? 'bg-primary text-primary-foreground'
+          ? 'bg-primary text-primary-foreground cursor-not-allowed'
           : 'bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary'
       )}
     >
@@ -186,6 +187,7 @@ export function UpvoteButton({ count, onUpvote, upvoted = false }: UpvoteButtonP
           {count}
         </motion.span>
       </AnimatePresence>
+      {upvoted && <span className="text-xs font-medium">Voted</span>}
     </motion.button>
   );
 }
