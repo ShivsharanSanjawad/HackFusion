@@ -29,8 +29,8 @@ public class Report {
     @Column(name = "issue_since")
     private LocalDate issueSince;
 
-    @Column(name = "media_url")
-    private List<String> mediaUrl;
+    @Column(name = "media_url", columnDefinition = "text[]")
+    private List<String> media_url;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")

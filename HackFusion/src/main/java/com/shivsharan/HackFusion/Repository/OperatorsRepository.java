@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface OperatorsRepository extends JpaRepository<Operators, UUID>
 {
     List<Operators> findByDepartment_Id(UUID departmentId);
+
 }

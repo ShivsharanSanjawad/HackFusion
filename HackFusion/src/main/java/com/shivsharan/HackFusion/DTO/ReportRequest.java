@@ -4,6 +4,7 @@ package com.shivsharan.HackFusion.DTO;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 @Data
 public class ReportRequest {
@@ -12,6 +13,6 @@ public class ReportRequest {
     String description;
     double lat;
     double lon;
-    String media_url;
+    List<String> media_url;
     UUID department_id;
 }
