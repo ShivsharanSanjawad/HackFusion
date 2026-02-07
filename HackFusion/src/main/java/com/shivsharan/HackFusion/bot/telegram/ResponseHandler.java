@@ -3,10 +3,7 @@ package com.shivsharan.HackFusion.bot.telegram;
 import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
 import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
 import com.shivsharan.HackFusion.Model.Report;
-import com.shivsharan.HackFusion.Service.DepartmentService;
-import com.shivsharan.HackFusion.Service.MLpipeline;
-import com.shivsharan.HackFusion.Service.OperatorsService;
-import com.shivsharan.HackFusion.Service.ReportService;
+import com.shivsharan.HackFusion.Service.*;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.objects.Location;
@@ -28,6 +25,7 @@ public class ResponseHandler {
     private final ReportService reportService;
     private final OperatorsService operatorsService;
     private final MLpipeline mLpipeline;
+    private final CloudinaryService cloudinaryService;
 
     public enum UserState {
         START,
@@ -43,7 +41,8 @@ public class ResponseHandler {
     public ResponseHandler(SilentSender silent, DBContext db, IssueBot bot,
                            DepartmentService departmentService,
                            ReportService reportService, OperatorsService operatorsService,
-                           MLpipeline mLpipeline
+                           MLpipeline mLpipeline,
+                           CloudinaryService cloudinaryService
     ) {
         this.silent = silent;
         this.chatStates = db.getMap("USER_STATES");
@@ -53,6 +52,7 @@ public class ResponseHandler {
         this.reportService = reportService;
         this.operatorsService = operatorsService;
         this.mLpipeline = mLpipeline;
+        this.cloudinaryService = cloudinaryService;
     }
 
     // --- STEP 1: START ---
@@ -196,6 +196,7 @@ public class ResponseHandler {
 
     private void finalizeAndSaveReport(long chatId, Report report, String photoUrl) {
         try {
+            String photourl = cloudinaryService.uploadFile(photoUrl, "images");
             ReportRequest reportRequest = new ReportRequest();
 
             reportRequest.setUid(null);

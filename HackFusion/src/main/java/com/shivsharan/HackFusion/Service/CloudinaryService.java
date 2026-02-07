@@ -1,8 +1,9 @@
 package com.shivsharan.HackFusion.Service;
 
 import com.cloudinary.Cloudinary;
-import com.cloudinary.springboot.service.CloudinaryService;
+import com.cloudinary.utils.ObjectUtils;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,21 +12,49 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class CloudinaryServiceImpl implements CloudinaryService {
+public class CloudinaryService{
 
-    @Resource
     private Cloudinary cloudinary;
 
-    @Override
+    @Autowired
+    public CloudinaryService(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
+    }
+
     public String uploadFile(MultipartFile file, String folderName) {
         try{
-            HashMap<Object, Object> options = new HashMap<>();
-            options.put("folder", folderName);
-            Map uploadedFile = cloudinary.uploader().upload(file.getBytes(), options);
+            Map params = ObjectUtils.asMap(
+                    "use_filename", false,
+                    "unique_filename", true,
+                    "overwrite", true,
+                    "folderName", folderName
+            );
+            Map uploadedFile = cloudinary.uploader().upload(file.getBytes(), params);
             String publicId = (String) uploadedFile.get("public_id");
-            return cloudinary.url().secure(true).generate(publicId);
+            return (String) uploadedFile.get("secure_url");
 
         }catch (IOException e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String uploadFile(String url, String folderName) {
+        try {
+            // Cloudinary can download directly from a URL!
+            Map params = ObjectUtils.asMap(
+                    "folder", folderName,
+                    "use_filename", true,
+                    "unique_filename", true,
+                    "overwrite", false
+            );
+
+            // We pass the 'url' string directly to the .upload() method
+            Map uploadResult = cloudinary.uploader().upload(url, params);
+
+            return (String) uploadResult.get("secure_url");
+
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
