@@ -215,13 +215,42 @@ function HeroSection() {
 function LiveMapSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
-  const { incidents, upvoteIncident } = useIncidents();
+  const [allReports, setAllReports] = useState<any[]>([]);
   const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all reports from API
+  useEffect(() => {
+    const fetchAllReports = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/getReports', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('All Reports:', data);
+        setAllReports(data);
+      } catch (error) {
+        console.error('Error fetching all reports:', error);
+        setAllReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllReports();
+  }, []);
 
   const handleUpvote = (incidentId: string) => {
     if (!upvotedIncidents.has(incidentId)) {
       setUpvotedIncidents(new Set([...upvotedIncidents, incidentId]));
-      upvoteIncident(incidentId);
     }
   };
 
@@ -250,15 +279,21 @@ function LiveMapSection() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="glass-card p-4 overflow-hidden rounded-2xl"
         >
-          {incidents.length > 0 ? (
-            <IncidentMap
-              incidents={incidents}
-              height="500px"
-            />
+          {!loading ? (
+            allReports.length > 0 ? (
+              <IncidentMap
+                incidents={allReports}
+                height="500px"
+              />
+            ) : (
+              <div className="h-96 flex items-center justify-center flex-col gap-4 text-center">
+                <MapPin className="w-12 h-12 text-muted-foreground opacity-30" />
+                <p className="text-muted-foreground">No incidents reported yet</p>
+              </div>
+            )
           ) : (
-            <div className="h-96 flex items-center justify-center flex-col gap-4 text-center">
-              <MapPin className="w-12 h-12 text-muted-foreground opacity-30" />
-              <p className="text-muted-foreground">No incidents reported yet</p>
+            <div className="h-96 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </motion.div>
@@ -268,7 +303,7 @@ function LiveMapSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex justify-center"
+          className="flex justify-center mt-8"
         >
         </motion.div>
 
@@ -277,28 +312,34 @@ function LiveMapSection() {
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, delay: 0.4 }}
-          className="mt-8"
+          className="mt-12"
         >
           <h3 className="text-2xl font-display font-bold mb-6 flex items-center gap-2">
             <AlertCircle className="w-6 h-6 text-red-500" />
             Recently Reported Issues
           </h3>
-          {incidents.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {incidents.slice(0, 3).map((incident, index) => (
-                <IncidentCard
-                  key={incident.id}
-                  incident={incident}
-                  delay={0.5 + index * 0.1}
-                  onUpvote={() => handleUpvote(incident.id)}
-                  hasUpvoted={upvotedIncidents.has(incident.id)}
-                />
-              ))}
-            </div>
+          {!loading ? (
+            allReports.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {allReports.slice(0, 3).map((incident, index) => (
+                  <IncidentCard
+                    key={incident.id}
+                    incident={incident}
+                    delay={0.5 + index * 0.1}
+                    onUpvote={() => handleUpvote(incident.id)}
+                    hasUpvoted={upvotedIncidents.has(incident.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="glass-card p-12 text-center rounded-2xl">
+                <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
+                <p className="text-muted-foreground">No incidents reported yet. Help improve your community by reporting issues!</p>
+              </div>
+            )
           ) : (
-            <div className="glass-card p-12 text-center rounded-2xl">
-              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
-              <p className="text-muted-foreground">No incidents reported yet. Help improve your community by reporting issues!</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </motion.div>

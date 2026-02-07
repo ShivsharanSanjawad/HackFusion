@@ -1,34 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Search, MapPin, AlertTriangle } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { IncidentMap } from '@/components/IncidentMap';
-import { useIncidents } from '@/contexts/IncidentContext';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function MapViewPage() {
   const { user } = useAuth();
-  const { incidents } = useIncidents();
+  const [allReports, setAllReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
 
-  const filteredIncidents = incidents.filter((incident) => {
+  // Fetch all reports from API
+  useEffect(() => {
+    const fetchAllReports = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/getReports', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('All Reports for Map:', data);
+        setAllReports(data);
+      } catch (error) {
+        console.error('Error fetching all reports:', error);
+        setAllReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllReports();
+  }, []);
+
+  // Simple filtering based on search and priority
+  const filteredReports = allReports.filter((report) => {
     const matchesSearch =
-      incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      incident.description.toLowerCase().includes(searchQuery.toLowerCase());
+      report.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
 
-    const matchesCategory = !selectedCategory || incident.category === selectedCategory;
-    const matchesPriority = !selectedPriority || incident.priority === selectedPriority;
+    // Filter by priority if selected (using the priority number field)
+    const matchesPriority = !selectedPriority || report.priority?.toString() === selectedPriority;
 
-    // Filter by user role
-    if (user?.role === 'citizen') {
-      return matchesSearch && matchesCategory && matchesPriority;
-    }
-
-    return matchesSearch && matchesCategory && matchesPriority;
+    return matchesSearch && matchesPriority;
   });
 
   const categories = [
@@ -40,10 +64,10 @@ export default function MapViewPage() {
   ];
 
   const priorities = [
-    { id: 'critical', label: 'Critical' },
-    { id: 'high', label: 'High' },
-    { id: 'medium', label: 'Medium' },
-    { id: 'low', label: 'Low' },
+    { id: '1', label: 'Low' },
+    { id: '2', label: 'Medium' },
+    { id: '3', label: 'High' },
+    { id: '4', label: 'Critical' },
   ];
 
   return (
@@ -119,7 +143,7 @@ export default function MapViewPage() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Showing {filteredIncidents.length} incident{filteredIncidents.length !== 1 ? 's' : ''}
+            Showing {filteredReports.length} incident{filteredReports.length !== 1 ? 's' : ''}
           </p>
         </motion.div>
 
@@ -130,19 +154,25 @@ export default function MapViewPage() {
           transition={{ delay: 0.2 }}
           className="glass-card p-4 rounded-2xl overflow-hidden"
         >
-          {filteredIncidents.length > 0 ? (
-            <div className="rounded-xl overflow-hidden" style={{ height: '600px' }}>
-              <IncidentMap incidents={filteredIncidents} height="600px" />
-            </div>
-          ) : (
-            <div className="h-96 flex items-center justify-center flex-col gap-4">
-              <AlertTriangle className="w-12 h-12 text-muted-foreground opacity-50" />
-              <div className="text-center">
-                <h3 className="font-semibold mb-2">No incidents found</h3>
-                <p className="text-sm text-muted-foreground">
-                  Try adjusting your filters or check back later
-                </p>
+          {!loading ? (
+            filteredReports.length > 0 ? (
+              <div className="rounded-xl overflow-hidden" style={{ height: '600px' }}>
+                <IncidentMap incidents={filteredReports} height="600px" />
               </div>
+            ) : (
+              <div className="h-96 flex items-center justify-center flex-col gap-4">
+                <AlertTriangle className="w-12 h-12 text-muted-foreground opacity-50" />
+                <div className="text-center">
+                  <h3 className="font-semibold mb-2">No incidents found</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your filters or check back later
+                  </p>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="h-96 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </motion.div>

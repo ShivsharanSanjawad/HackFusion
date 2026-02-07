@@ -135,9 +135,9 @@ export default function CitizenDashboard() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "X-User-Id": "123",
-        "X-Username": "venkat",
-        "X-User-Type": "Staff"
+        "X-User-Id": "125",
+        "X-Username": "arjun",
+        "X-User-Type": "Citizen"
       }
     }
   );
