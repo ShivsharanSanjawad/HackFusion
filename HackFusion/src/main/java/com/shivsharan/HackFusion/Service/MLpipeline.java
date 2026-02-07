@@ -125,7 +125,7 @@ public class MLpipeline {
                     .call()
                     .entity(ClassificationDetailsDto.class);
 
-            logger.info(c.toString());
+            logger.info("dep:" + c.getFinalDepartment() + "\ndesc:" + c.getFinalDescription() + "\nprior:" + c.getFinalPriority() + "\nconfidenceScore:" + c.getConfidenceScore());
             return c;
 
         } catch (Exception e) {
