@@ -1,4 +1,4 @@
-# HackFusion - Incident Reporting & Management System
+# HackFusion : Incident Reporting & Management System
 
 ## Project Overview
 
