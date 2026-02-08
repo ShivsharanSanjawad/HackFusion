@@ -1,6 +1,7 @@
 package com.shivsharan.HackFusion.bot.telegram;
 
 import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
+import com.shivsharan.HackFusion.Model.Department;
 import com.shivsharan.HackFusion.Model.Operators; // Assuming this is your User/Operator model
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Service.*;
@@ -101,16 +102,16 @@ public class ResponseHandler {
             case AWAITING_DEPARTMENT:
                 if (update.getMessage().hasText()) {
                     String deptName = update.getMessage().getText();
-//                    Department dept = departmentService.findByName(deptName);
-//
-//                    if (dept != null) {
+                    Department dept = departmentService.findByName(deptName);
+
+                    if (dept != null) {
                         report.setDepartment(null);
                         silent.send("Department confirmed. Please enter the number of days since the issue has persisted (Format: Number).", chatId);
                         reportDrafts.put(chatId, report);
                         chatStates.put(chatId, UserState.AWAITING_ISSUE_SINCE);
-//                    } else {
-//                        silent.send("Department not found. Please ensure the name is correct and try again.", chatId);
-//                    }
+                    } else {
+                        silent.send("Department not found. Please ensure the name is correct and try again.", chatId);
+                    }
                 } else {
                     silent.send("Please enter a valid department name.", chatId);
                 }
@@ -188,23 +189,15 @@ public class ResponseHandler {
                     silent.send("Photo " + count + " saved! Send more or type /done.", chatId);
 
                 }
-                else if (update.getMessage().hasText()) {
-                    if (report.getMedia_url().isEmpty()) {
+                else if (report.getMedia_url().isEmpty()) {
                         silent.send("⚠️ You must upload at least one photo before finishing.", chatId);
-                    } else {
+                } else {
                         finalizeAndSaveReport(chatId, report);
                         chatStates.put(chatId, UserState.COMPLETED);
                         reportDrafts.remove(chatId);
+                        chatStates.remove(chatId);
                         silent.send("Report submitted successfully!", chatId);
-                    }
-                } else {
-                    silent.send("Waiting for photos...", chatId);
                 }
-                break;
-
-            case COMPLETED:
-                reportDrafts.remove(chatId);
-                chatStates.remove(chatId);
                 break;
             default:
                 silent.send("Session expired or invalid state. Type /start to begin.", chatId);
@@ -220,6 +213,7 @@ public class ResponseHandler {
 
     private void finalizeAndSaveReport(long chatId, Report report) {
         try {
+            chatStates.put(chatId, UserState.START);
             List<String> photos = report.getMedia_url();
             for(int i = 0; i < photos.size(); i++){
                 String photourl = cloudinaryService.uploadFile(photos.get(i), "images");

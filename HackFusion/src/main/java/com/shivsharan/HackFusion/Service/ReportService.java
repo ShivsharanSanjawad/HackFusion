@@ -30,7 +30,7 @@ public class ReportService {
     public Report save(ReportRequest dto) {
         // 1. Fetch the operator - MUST NOT BE NULL
         Operators operator = operatorsRepository.findByUsername(dto.getUsername());
-
+//        findReportsWithinDistance
         if (operator == null) {
             // Log this to your console to see what username actually arrived
             System.out.println("DEBUG: Looking for username: " + dto.getUsername());
@@ -47,7 +47,7 @@ public class ReportService {
         report.setLon(dto.getLon());
         report.setMedia_url(dto.getMedia_url());
         report.setEntryDate(LocalDate.now());
-        report.setStatus("PENDING");
+        report.setStatus("OPEN");
         report.setPriority(1);
         report.setUpvotes(0);
 
