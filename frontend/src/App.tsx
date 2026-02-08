@@ -22,15 +22,15 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ 
-  children, 
-  allowedRoles 
-}: { 
+function ProtectedRoute({
+  children,
+  allowedRoles
+}: {
   children: React.ReactNode;
   allowedRoles?: UserRole[];
 }) {
   const { isAuthenticated, isLoading, user } = useAuth();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -38,27 +38,12 @@ function ProtectedRoute({
       </div>
     );
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
   // Check role-based access
-  if (allowedRoles && !allowedRoles.includes(user?.role || 'citizen')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
-          <p className="text-muted-foreground mb-6">
-            You don't have permission to access this page.
-          </p>
-          <a href="/dashboard" className="text-primary hover:underline">
-            Return to Dashboard
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return <>{children}</>;
 }
@@ -69,7 +54,7 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      
+
       {/* Role-based Dashboards */}
       <Route
         path="/dashboard"
@@ -90,17 +75,13 @@ function AppRoutes() {
       <Route
         path="/authority/dashboard"
         element={
-          <ProtectedRoute allowedRoles={['authority']}>
-            <AuthorityDashboard />
-          </ProtectedRoute>
+          <AuthorityDashboard />
         }
       />
       <Route
         path="/authority/incidents"
         element={
-          <ProtectedRoute allowedRoles={['authority']}>
-            <IncidentsPage />
-          </ProtectedRoute>
+          <IncidentsPage />
         }
       />
       <Route
@@ -111,7 +92,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      
+
       {/* Map View - Available to all authenticated users */}
       <Route
         path="/map"
@@ -129,7 +110,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
