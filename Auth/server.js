@@ -1,72 +1,88 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-const { v5: uuidv5 } = require('uuid');
-const jwt = require('jsonwebtoken'); // Added
+const { v5: uuidv5, parse: uuidParse } = require('uuid');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Database Connection
 const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 });
 
-const NAMESPACE = process.env.UUID_NAMESPACE;
-const JWT_SECRET = process.env.JWT_SECRET;
+// Fix for the TypeError: Parse the string namespace into a byte array
+const NAMESPACE = uuidParse(process.env.UUID_NAMESPACE || '6ba7b810-9dad-11d1-80b4-00c04fd430c8');
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_this';
 
-// Helper to generate JWT
+// Helper: Generate JWT
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '24h' });
 };
 
-// --- SIGNUP ROUTE ---
+// --- SIGNUP ---
 app.post('/signup', async (req, res) => {
-  const { email, password, role, department_id } = req.body;
+  // Destructure 'name' which is sent by your AuthProvider
+  const { email, password, role, department_id, name } = req.body;
+  
+  // Deterministic ID generation (remains email + password)
   const id = uuidv5(email + password, NAMESPACE);
 
   try {
     const query = `
       INSERT INTO operators (id, username, role, department_id, join_date)
       VALUES ($1, $2, $3, $4, CURRENT_DATE)
-      RETURNING id, username, role;
+      RETURNING id, username as name, role; 
     `;
-    const result = await pool.query(query, [id, email, role, department_id || null]);
+    // FIX: Pass 'name' to $2 instead of 'email'
+    const values = [id, name, role, department_id || null];
     
-    // Create token after successful signup
+    const result = await pool.query(query, values);
+    
     const token = generateToken(id);
 
+    // We return 'email' manually in the response since it's not in your DB table
     res.status(201).json({ 
-      message: "Operator created", 
+      message: "Signup successful", 
       token, 
-      user: result.rows[0] 
+      user: { 
+        ...result.rows[0], 
+        email 
+      } 
     });
   } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: "Username already exists" });
+    if (err.code === '23505') return res.status(400).json({ error: "Operator already exists" });
     res.status(500).json({ error: err.message });
   }
 });
 
+// --- LOGIN ---
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   const attemptId = uuidv5(email + password, NAMESPACE);
 
   try {
-    const result = await pool.query('SELECT id, username, role FROM operators WHERE id = $1', [attemptId]);
+    // Alias 'username' to 'name' to match your Frontend interface
+    const result = await pool.query(
+      'SELECT id, username as name, role, department_id FROM operators WHERE id = $1', 
+      [attemptId]
+    );
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const token = generateToken(user.id);
-
+      
       res.json({ 
         message: "Login successful", 
         token, 
-        user 
+        user: { ...user, email } // Sending email back so frontend context has it
       });
     } else {
       res.status(401).json({ error: "Invalid credentials" });
@@ -75,24 +91,3 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; 
-
-  if (!token) return res.sendStatus(401);
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-};
-
-// Example Protected Route
-app.get('/me', authenticateToken, async (req, res) => {
-  const result = await pool.query('SELECT * FROM operators WHERE id = $1', [req.user.id]);
-  res.json(result.rows[0]);
-});
-
-app.listen(3000, () => console.log('Server running on port 3000'));
