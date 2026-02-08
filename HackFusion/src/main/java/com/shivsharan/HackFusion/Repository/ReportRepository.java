@@ -90,4 +90,7 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
     List<Report> findReportsWithinDistance(@Param("lat") double lat,
                                                         @Param("lon") double lon,
                                                         @Param("dist") double dist);
+
+    @Query("SELECT COUNT(r.id), COUNT(DISTINCT r.category) FROM Report r WHERE r.senders.id = :userId")
+    Object[] findCivicMetricsByUserId(@Param("userId") UUID userId);
 }

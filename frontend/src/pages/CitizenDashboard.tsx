@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -54,11 +54,12 @@ function UniqueMetricCard({
         'hover:shadow-xl transition-shadow'
       )}
     >
-      {/* Animated background elements */}
-      <div className={cn('absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-30 blur-2xl group-hover:opacity-50 transition-opacity', color)} />
+      <div className={cn(
+        'absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-30 blur-2xl group-hover:opacity-50 transition-opacity',
+        color
+      )} />
       <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-accent/20 opacity-0 group-hover:opacity-30 transition-opacity blur-xl" />
 
-      {/* Content */}
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -97,11 +98,15 @@ function UniqueMetricCard({
         )}
       </div>
 
-      {/* Decorative bottom border */}
-      <div className={cn('absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r', color, 'opacity-0 group-hover:opacity-100 transition-opacity')} />
+      <div className={cn(
+        'absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r',
+        color,
+        'opacity-0 group-hover:opacity-100 transition-opacity'
+      )} />
     </motion.div>
   );
 }
+
 export interface Report {
   id: string; 
   senders: { id: string; name: string; role: string };
@@ -117,67 +122,70 @@ export interface Report {
   pdf_url: string | null;
   department?: { id: string; name: string };
 }
+
 export default function CitizenDashboard() {
-  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  // ✅ READ USER FROM LOCALSTORAGE
+  const storedUser = localStorage.getItem('urbanflow_user');
+  const userId = storedUser ? JSON.parse(storedUser).id : null;
+
   const [reports, setReports] = useState<Report[]>([]);
   const [inProgressReports, setInProgressReports] = useState<Report[]>([]);
   const [resolvedReports, setResolvedReports] = useState<Report[]>([]);
-  const [upvotes,setUpvotes] = useState(0);
+  const [upvotes, setUpvotes] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchReports = async () => {
-    try {
-      const response = await fetch(
-    `http://localhost:8080/getReports?userId=${userId}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-User-Id": "125",
-        "X-Username": "arjun",
-        "X-User-Type": "Citizen"
-      }
-    }
-  );
-
-    // 1. Check if the response is okay first
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // 2. Parse the body ONCE
-    const data = await response.json(); 
-    console.log(data);
-    const inProgress = data.filter(report => report.status === 'IN_PROGRESS');
-    setInProgressReports(inProgress);
-
-    const resolved = data.filter(report => report.status === 'RESOLVED');
-    setResolvedReports(resolved);
-    console.log("Filtered In-Progress Reports:", inProgress);
-
-    const totalUpvotes = data.reduce((sum, report) => sum + report.upvotes, 0);
-    setUpvotes(totalUpvotes);
-
-    // 3. Now you can use 'data' as many times as you want
-    console.log("Fetched Data:", data); 
-    setReports(data);
-
-  } catch (error) {
-    // This will now catch both Network errors and Parsing errors
-    console.error("Error fetching reports:", error);
-  }
-};
-    fetchReports();
-  }, []);
   const [showReportModal, setShowReportModal] = useState(false);
   const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchReports = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/getReports?userId=${userId}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const inProgress = data.filter((r: Report) => r.status === 'IN_PROGRESS');
+        const resolved = data.filter((r: Report) => r.status === 'RESOLVED');
+        const totalUpvotes = data.reduce(
+          (sum: number, r: Report) => sum + r.upvotes,
+          0
+        );
+
+        setReports(data);
+        setInProgressReports(inProgress);
+        setResolvedReports(resolved);
+        setUpvotes(totalUpvotes);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [userId]);
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Welcome Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -185,13 +193,13 @@ export default function CitizenDashboard() {
         >
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back, Arjun👋
+              Welcome back 👋
             </h1>
             <p className="text-muted-foreground">
               Track your reported issues and make a difference in your community.
             </p>
           </div>
-          <Button 
+          <Button
             onClick={() => setShowReportModal(true)}
             className="bg-gradient-primary hover:opacity-90 shadow-glow"
           >
@@ -200,43 +208,13 @@ export default function CitizenDashboard() {
           </Button>
         </motion.div>
 
-        {/* Unique Metrics Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <UniqueMetricCard
-            title="My Reports"
-            value={reports.length}
-            icon={FileText}
-            color="text-blue-500"
-            trend="Keep reporting issues"
-            delay={0.1}
-          />
-          <UniqueMetricCard
-            title="In Progress"
-            value={inProgressReports.length}
-            icon={Clock}
-            color="text-orange-500"
-            trend="Being worked on"
-            delay={0.2}
-          />
-          <UniqueMetricCard
-            title="Resolved"
-            value={resolvedReports.length}
-            icon={CheckCircle2}
-            color="text-green-500"
-            trend="Successfully fixed"
-            delay={0.3}
-          />
-          <UniqueMetricCard
-            title="Total Upvotes"
-            value={upvotes}
-            icon={Zap}
-            color="text-purple-500"
-            trend="Community support"
-            delay={0.4}
-          />
+          <UniqueMetricCard title="My Reports" value={reports.length} icon={FileText} color="text-blue-500" delay={0.1} />
+          <UniqueMetricCard title="In Progress" value={inProgressReports.length} icon={Clock} color="text-orange-500" delay={0.2} />
+          <UniqueMetricCard title="Resolved" value={resolvedReports.length} icon={CheckCircle2} color="text-green-500" delay={0.3} />
+          <UniqueMetricCard title="Total Upvotes" value={upvotes} icon={Zap} color="text-purple-500" delay={0.4} />
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-4">
@@ -255,68 +233,44 @@ export default function CitizenDashboard() {
             </div>
 
             <div className="space-y-4">
-              {reports.length > 0 ? (
-                reports
-                  .filter(r => r.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((report, index) => (
-                    <IncidentCard
-                      key={report.id}
-                      incident={report} // Passing the Report object directly
-                      delay={index * 0.1}
-                      hasUpvoted={upvotedIncidents.has(report.id)}
-                      onUpvote={() => {
-                        if (!upvotedIncidents.has(report.id)) {
-                          setUpvotedIncidents(new Set([...upvotedIncidents, report.id]));
-                          // upvoteIncident API call logic here
-                        }
-                      }}
-                    />
-                  ))
-              ) : (
-                <div className="glass-card p-12 text-center border border-dashed rounded-2xl">
-                  <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2">No incidents found</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Start by reporting an issue in your area.
-                  </p>
-                </div>
-              )}
+              {reports
+                .filter(r =>
+                  r.description.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((report, index) => (
+                  <IncidentCard
+                    key={report.id}
+                    incident={report}
+                    delay={index * 0.1}
+                    hasUpvoted={upvotedIncidents.has(report.id)}
+                    onUpvote={() => {
+                      if (!upvotedIncidents.has(report.id)) {
+                        setUpvotedIncidents(
+                          new Set([...upvotedIncidents, report.id])
+                        );
+                      }
+                    }}
+                  />
+                ))}
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="glass-card p-4 rounded-2xl border bg-white/50 backdrop-blur-sm">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-red-500" />
-                Your Area Map
-              </h3>
-              {/* Passing the full reports array to the map */}
-              <IncidentMap incidents={reports} height="300px" />
-            </div>
-
-            <div className="glass-card p-6 rounded-2xl border bg-white/50 backdrop-blur-sm">
-              <h3 className="font-semibold mb-4 text-blue-600">Civic Support</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Need urgent assistance regarding your filed reports?
-              </p>
-              <Button 
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-200"
-                onClick={() => window.open('tel:+911234567890')}
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                Call Support Team
-              </Button>
-            </div>
+            <IncidentMap incidents={reports} height="300px" />
+            <Button
+              className="w-full bg-blue-500 text-white"
+              onClick={() => window.open('tel:+911234567890')}
+            >
+              <Phone className="w-4 h-4 mr-2" />
+              Call Support
+            </Button>
           </div>
         </div>
 
-        <ReportIncidentModal 
-          open={showReportModal} 
+        <ReportIncidentModal
+          open={showReportModal}
           onOpenChange={setShowReportModal}
-          onSubmit={(data) => {
-            console.log('New incident report:', data);
-            setShowReportModal(false);
-          }}
+          onSubmit={() => setShowReportModal(false)}
         />
       </div>
     </DashboardLayout>

@@ -34,6 +34,9 @@ import { useIncidents } from '@/contexts/IncidentContext';
 import { Incident, IncidentPriority, IncidentStatus, mockDepartments, mockUsers } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 
+const storedUser = localStorage.getItem('urbanflow_user');
+const userId = storedUser ? JSON.parse(storedUser).id : null;
+
 interface FilterState {
   priority: IncidentPriority | null;
   status: IncidentStatus | null;
@@ -56,6 +59,41 @@ interface AssignWorkerModalState {
 
 export default function AuthorityDashboard() {
   const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  useEffect(() => {
+  if (!userId) {
+    setLoading(false);
+    return;
+  }
+
+  const fetchReports = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/getReports?userId=${userId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('All Reports from API:', data);
+      setApiReports(data);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setApiReports([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchReports();
+}, [userId]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     priority: null,

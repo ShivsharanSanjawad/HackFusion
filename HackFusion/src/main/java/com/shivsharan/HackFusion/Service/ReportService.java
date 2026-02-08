@@ -9,6 +9,7 @@ import com.shivsharan.HackFusion.Repository.DepartmentRepository;
 import com.shivsharan.HackFusion.Repository.OperatorsRepository;
 import com.shivsharan.HackFusion.Repository.ReportRepository;
 import com.shivsharan.HackFusion.Repository.ReportStatusRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -80,8 +81,25 @@ public class ReportService {
     {
         return reportRepository.findAll();
     }
-    public void assignWorker(assignDTO dto)
-    {
 
+    public void assignWorker(assignDTO dto) {
+        // 1. Fetch the report (using reportID from DTO)
+        Report report = reportRepository.findById(dto.getReportID())
+                .orElseThrow(() -> new RuntimeException("Report not found with ID: " + dto.getReportID()));
+
+        // 2. Fetch the worker/operator (using workerID from DTO)
+        Operators worker = operatorsRepository.findById(dto.getWorkerID())
+                .orElseThrow(() -> new RuntimeException("Worker not found with ID: " + dto.getWorkerID()));
+
+        // 3. Set the worker (this maps to 'assigned_id' in your DB)
+        report.setWorkers(worker);
+
+        // 4. Update status to reflect it is now being handled
+        report.setStatus("IN_PROGRESS");
+
+        // 5. Save the updated report
+        reportRepository.save(report);
+
+        System.out.println("Assigned " + worker.getUsername() + " to report: " + report.getDescription());
     }
 }

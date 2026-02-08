@@ -60,4 +60,27 @@ public class ReportService3 {
         List<Report> reports = reportRepository.findReportsWithinDistance(lat, lon, dist);
         return reports;
     }
+
+    public double getCivicScore(UUID userId) {
+        // 1. Define your weights
+        double w1 = 1.5; // Weight for total volume of participation
+        double w2 = 5.0; // Weight for diversity of impact (unique categories)
+
+        // 2. Fetch the components using a single optimized query
+        // This returns an Object array: [Long totalReports, Long uniqueCategories]
+        Object[] stats = reportRepository.findCivicMetricsByUserId(userId);
+
+        if (stats == null || stats.length < 2) {
+            return 0.0;
+        }
+
+        // JPA returns counts as Longs by default
+        long Rv = (long) stats[0];
+        long Ru = (long) stats[1];
+
+        // 3. Calculate the weighted score
+        double ret = (Rv * w1) + (Ru * w2);
+
+        return ret;
+    }
 }

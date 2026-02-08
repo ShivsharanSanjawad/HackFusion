@@ -9,7 +9,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Database Connection
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -18,48 +17,33 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Fix for the TypeError: Parse the string namespace into a byte array
+// UUID Namespace - ensures email+pass always creates the same UUID
 const NAMESPACE = uuidParse(process.env.UUID_NAMESPACE || '6ba7b810-9dad-11d1-80b4-00c04fd430c8');
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_this';
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_anon_key';
 
-// Helper: Generate JWT
+// JWT contains ONLY the UUID for full anonymity
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '24h' });
 };
 
 // --- SIGNUP ---
 app.post('/signup', async (req, res) => {
-  // Destructure 'name' which is sent by your AuthProvider
   const { email, password, role, department_id, name } = req.body;
-  
-  // Deterministic ID generation (remains email + password)
-  console.log(req.body);
   const id = uuidv5(email + password, NAMESPACE);
 
   try {
     const query = `
-      INSERT INTO operators (id, username, role, department_id, join_date)
-      VALUES ($1, $2, $3, $4, CURRENT_DATE)
-      RETURNING id, username as name, role; 
+      INSERT INTO operators (id, username, email, role, department_id, join_date)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+      RETURNING id, username as name, role, department_id;
     `;
-    // FIX: Pass 'name' to $2 instead of 'email'
-    const values = [id, name, role, department_id || null];
-    
+    const values = [id, name, email, role, department_id || null];
     const result = await pool.query(query, values);
     
     const token = generateToken(id);
-
-    // We return 'email' manually in the response since it's not in your DB table
-    res.status(201).json({ 
-      message: "Signup successful", 
-      token, 
-      user: { 
-        ...result.rows[0], 
-        email 
-      } 
-    });
+    res.status(201).json({ token, ...result.rows[0] });
   } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: "Operator already exists" });
+    if (err.code === '23505') return res.status(400).json({ error: "User already exists" });
     res.status(500).json({ error: err.message });
   }
 });
@@ -70,7 +54,6 @@ app.post('/login', async (req, res) => {
   const attemptId = uuidv5(email + password, NAMESPACE);
 
   try {
-    // Alias 'username' to 'name' to match your Frontend interface
     const result = await pool.query(
       'SELECT id, username as name, role, department_id FROM operators WHERE id = $1', 
       [attemptId]
@@ -79,12 +62,7 @@ app.post('/login', async (req, res) => {
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const token = generateToken(user.id);
-      
-      res.json({ 
-        message: "Login successful", 
-        token, 
-        user: { ...user, email } // Sending email back so frontend context has it
-      });
+      res.json({ token, ...user });
     } else {
       res.status(401).json({ error: "Invalid credentials" });
     }
@@ -92,3 +70,5 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.listen(3000, () => console.log('Backend running on port 3000'));
