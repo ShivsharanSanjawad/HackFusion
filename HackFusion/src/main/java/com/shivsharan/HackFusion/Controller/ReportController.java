@@ -3,11 +3,9 @@ package com.shivsharan.HackFusion.Controller;
 import com.shivsharan.HackFusion.DTO.ReportRequest;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
-import com.shivsharan.HackFusion.Service.DepartmentService;
-import com.shivsharan.HackFusion.Service.MLpipeline;
-import com.shivsharan.HackFusion.Service.ReportService;
+import com.shivsharan.HackFusion.Repository.ReportRepository;
+import com.shivsharan.HackFusion.Service.*;
 import com.shivsharan.HackFusion.DTO.ClassificationDetailsDto;
-import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -29,16 +27,29 @@ public class ReportController {
     MLpipeline mLpipeline ;
     @Autowired
     private DepartmentService departmentService;
+    @Autowired
+    private DuplicateCheckingService duplicateCheckingService;
+    @Autowired
+    private ReportRepository reportRepository;
+
     @PostMapping("/report")
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
             Report r = reportService.save(dto);
             ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
             r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
             r.setPriority(classificationDetailsDto.getFinalPriority());
-            
 
-            return ResponseEntity.ok().body(r.getId());
+            Report report2 = duplicateCheckingService.findDuplicate(r);
+
+            if(report2 != null){
+                report2.setUpvotes(report2.getUpvotes() + 1);
+            }
+            else{
+                reportRepository.delete(r);
+            }
+            return ResponseEntity.ok().body(report2 == null ? report2.getId() : r.getId());
     }
+
     @GetMapping("/getAll")
     public ResponseEntity getReport()
     {

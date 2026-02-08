@@ -72,12 +72,13 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
     OverallStatsDTO getOverallStats(@Param("weekStart") LocalDate weekStart);
 
     // FIXED: This method now has exactly one @Query annotation
-    @Query(value = "SELECT * FROM reports r WHERE " +
+    @Query(value = "SELECT * FROM reports r WHERE r.department_id = :deptId AND " +
             "(6371 * acos(cos(radians(:lat)) * cos(radians(r.lat)) * " +
             "cos(radians(r.lon) - radians(:lon)) + sin(radians(:lat)) * " +
             "sin(radians(r.lat)))) <= :dist",
             nativeQuery = true)
     List<Report> findReportsWithinDistance(@Param("lat") double lat,
                                            @Param("lon") double lon,
-                                           @Param("dist") double dist);
+                                           @Param("dist") double dist,
+                                           @Param("deptId") String depIt);
 }
