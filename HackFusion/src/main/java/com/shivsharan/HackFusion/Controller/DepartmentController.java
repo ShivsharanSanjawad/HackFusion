@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.Annotation.Auditable;
 import com.shivsharan.HackFusion.DTO.assignDTO;
 import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
@@ -53,6 +54,11 @@ public class DepartmentController {
         return ResponseEntity.ok().body(ret);
     }
 
+    @Auditable(
+            action = "WORKER_ASSIGNED",
+            entityType = "DOCUMENT",
+            uploadToIpfs = true  // Upload audit log to blockchain
+    )
     @PutMapping("/assignWorkers")
     public ResponseEntity<String> assignWorker(@RequestBody assignDTO dto){
         reportService.assignWorker(dto);

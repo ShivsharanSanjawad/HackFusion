@@ -90,6 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem('urbanflow_user');
     localStorage.removeItem('token');
+    // Redirect to login page
+    window.location.href = '/login';
   };
 
   return (

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Filter, 
+import {
+  Plus,
+  Filter,
   Search,
   Clock,
   TrendingUp,
@@ -11,10 +11,19 @@ import {
   Zap,
   Phone,
   RotateCcw,
+  Download,
+  Eye,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { IncidentCard } from '@/components/IncidentCard';
 import { IncidentMap } from '@/components/IncidentMap';
 import { ReportIncidentModal } from '@/components/ReportIncidentModal';
@@ -22,7 +31,7 @@ import { cn } from '@/lib/utils';
 
 // --- Types ---
 export interface Report {
-  id: string; 
+  id: string;
   senders: { id: string; name: string; role: string };
   entryDate: string;
   issueSince: string;
@@ -35,6 +44,13 @@ export interface Report {
   lon: number;
   pdf_url: string | null;
   department?: { id: string; name: string };
+}
+
+export interface ReportStatusItem {
+  id?: string;
+  status: string;
+  timestamp: string;
+  description?: string;
 }
 
 // --- Sub-components ---
@@ -104,6 +120,11 @@ export default function CitizenDashboard() {
   const [loading, setLoading] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
   const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [reportStatus, setReportStatus] = useState<ReportStatusItem[]>([]);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchReports = async () => {
     if (!userId) return;
@@ -121,7 +142,7 @@ export default function CitizenDashboard() {
       setInProgressReports(reportsData.filter((r: Report) => r.status === 'IN_PROGRESS'));
       setResolvedReports(reportsData.filter((r: Report) => r.status === 'CLOSED' || r.status === 'RESOLVED'));
       setUpvotes(reportsData.reduce((sum: number, r: Report) => sum + r.upvotes, 0));
-      
+
       // Fixed: safely set civic score based on your backend response structure
       setCivicScore(typeof scoreData === 'object' ? (scoreData.score || 0) : scoreData);
 
@@ -153,6 +174,69 @@ export default function CitizenDashboard() {
     }
   };
 
+  const handleDownloadPDF = async (reportId: string) => {
+    setDownloadingId(reportId);
+    try {
+      const response = await fetch(`http://localhost:8080/closeReport?reportID=${reportId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const data = await response.text();
+        if (data && data.startsWith('http')) {
+          window.open(data, '_blank');
+        } else {
+          alert('PDF generated. Check your downloads.');
+        }
+      } else {
+        alert('Failed to download PDF');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Error downloading PDF');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleViewStatus = async (report: Report) => {
+    setSelectedReport(report);
+    setLoadingStatus(true);
+    try {
+      const response = await fetch(`http://localhost:8080/getReportStatus?reportid=${report.id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const statusData = await response.json();
+        setReportStatus(Array.isArray(statusData) ? statusData : [statusData]);
+      } else {
+        setReportStatus([]);
+        alert('Failed to load report status');
+      }
+    } catch (error) {
+      console.error('Error fetching report status:', error);
+      setReportStatus([]);
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchReports();
+      alert('Reports refreshed successfully!');
+    } catch (error) {
+      console.error('Error refreshing reports:', error);
+      alert('Failed to refresh reports');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -161,9 +245,20 @@ export default function CitizenDashboard() {
             <h1 className="text-2xl md:text-3xl font-display font-bold">Welcome back 👋</h1>
             <p className="text-muted-foreground">Track your reported issues and make a difference.</p>
           </div>
-          <Button onClick={() => setShowReportModal(true)} className="bg-gradient-primary hover:opacity-90 shadow-glow">
-            <Plus className="w-4 h-4 mr-2" /> Report New Issue
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              className="hover:bg-blue-50"
+            >
+              <RotateCcw className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button onClick={() => setShowReportModal(true)} className="bg-gradient-primary hover:opacity-90 shadow-glow">
+              <Plus className="w-4 h-4 mr-2" /> Report New Issue
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -197,16 +292,36 @@ export default function CitizenDashboard() {
                     />
 
                     <div className="flex gap-3 px-6 pb-4 pt-2 border-t bg-muted/20">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewStatus(report)}
+                        className="bg-white hover:bg-blue-50 text-blue-600 border-blue-200"
+                      >
+                        <Eye className="w-3 h-3 mr-2" />
+                        View Status
+                      </Button>
                       {(report.status === 'CLOSED' || report.status === 'RESOLVED') ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleReportAction(report.id, 'reOpen')}
-                          className="bg-white hover:bg-orange-50 text-orange-600 border-orange-200"
-                        >
-                          <RotateCcw className="w-3 h-3 mr-2" />
-                          Re-open Issue
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReportAction(report.id, 'reOpen')}
+                            className="bg-white hover:bg-orange-50 text-orange-600 border-orange-200"
+                          >
+                            <RotateCcw className="w-3 h-3 mr-2" />
+                            Re-open Issue
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleDownloadPDF(report.id)}
+                            disabled={downloadingId === report.id}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            {downloadingId === report.id ? 'Downloading...' : 'Download PDF'}
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           size="sm"
@@ -240,6 +355,51 @@ export default function CitizenDashboard() {
             fetchReports();
           }}
         />
+
+        {/* Report Status Modal */}
+        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Report Status Timeline</DialogTitle>
+              <DialogDescription>
+                {selectedReport?.description.substring(0, 50)}...
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingStatus ? (
+              <div className="flex items-center justify-center py-8">
+                <p className="text-muted-foreground">Loading status...</p>
+              </div>
+            ) : reportStatus.length > 0 ? (
+              <div className="space-y-4">
+                {reportStatus.map((status, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="relative pl-6 pb-4 border-l-2 border-blue-400 last:pb-0"
+                  >
+                    <div className="absolute -left-3 top-0 w-4 h-4 bg-blue-500 rounded-full border-2 border-white" />
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
+                      <p className="font-semibold text-sm text-blue-700">{status.status}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(status.timestamp).toLocaleString()}
+                      </p>
+                      {status.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{status.description}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground">No status updates available</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

@@ -26,9 +26,14 @@ interface UpdateMetadata {
 export default function FieldStaffDashboard() {
   const { user } = useAuth();
 
-  // ✅ READ USER FROM LOCALSTORAGE
-  const storedUser = localStorage.getItem('urbanflow_user');
-  const userId = storedUser ? JSON.parse(storedUser).id : null;
+  // 🔒 HARDCODED WORKER IDs FROM DATABASE
+  // Switch worker by changing the hardcoded ID:
+  // alice_tech - Engineering: f47ac10b-58cc-4372-a567-0e02b2c3d479
+  // bob_ops - Operations: b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f
+  // charlie_data - Data Science: 6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a
+
+  const userId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'; // Hardcoded: alice_tech
+  const departmentId = '550e8400-e29b-41d4-a716-446655440000'; // Hardcoded: Engineering
 
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [showUpdatePanel, setShowUpdatePanel] = useState(false);
@@ -44,23 +49,16 @@ export default function FieldStaffDashboard() {
   const [assignedTasks, setAssignedTasks] = useState<any[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const HARDCODED_IDS = {
-    reportID: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    departmentId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    workerId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-  };
-
   useEffect(() => {
-    if (!userId) {
-      setTasksLoading(false);
-      return;
-    }
-
     const fetchTasks = async () => {
       try {
         setTasksLoading(true);
+        setErrorMessage(null);
+
+        console.log('Fetching tasks for userId:', userId);
 
         const response = await fetch(
           `http://localhost:8080/worker/getTasks?workerId=${userId}`,
@@ -68,18 +66,20 @@ export default function FieldStaffDashboard() {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'X-User-Id': '123',
-              'X-Username': 'venkat',
-              'X-User-Type': 'Staff',
             },
           }
         );
 
+        console.log('Response status:', response.status);
+
         if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
+          const errorData = await response.json().catch(() => null);
+          console.error('Fetch error details:', errorData);
+          throw new Error(`HTTP error ${response.status}: ${JSON.stringify(errorData)}`);
         }
 
         const data = await response.json();
+        console.log('Tasks fetched successfully:', data);
 
         const normalized = (Array.isArray(data) ? data : []).map((task: any) => {
           const lat = task.lat ?? task.location?.lat ?? 0;
@@ -108,8 +108,12 @@ export default function FieldStaffDashboard() {
         });
 
         setAssignedTasks(normalized);
+        if (normalized.length > 0) {
+          setSelectedTask(normalized[0].id);
+        }
       } catch (error) {
         console.error('Fetch Error:', error);
+        setErrorMessage(`Failed to load tasks: ${error}`);
         setAssignedTasks([]);
       } finally {
         setTasksLoading(false);
@@ -132,7 +136,10 @@ export default function FieldStaffDashboard() {
     });
 
   const handleSubmitUpdate = async () => {
-    if (!selectedIncident) return;
+    if (!selectedIncident || !userId) {
+      setErrorMessage('No task selected or user not logged in');
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -143,8 +150,8 @@ export default function FieldStaffDashboard() {
         }
 
         const payload = {
-          reportID: selectedIncident.id || HARDCODED_IDS.reportID,
-          workerID: HARDCODED_IDS.workerId,
+          reportID: selectedIncident.id,
+          workerID: userId,
           images: imageStrings,
           description: updateData.notes || '',
           date:
@@ -152,26 +159,31 @@ export default function FieldStaffDashboard() {
             new Date().toISOString().split('T')[0],
         };
 
+        console.log('Submitting completion payload:', payload);
+
         const response = await fetch(
           'http://localhost:8080/worker/completeReport',
           {
             method: 'POST',
             headers: {
-              'X-User-Id': '123',
-              'X-Username': 'venkat',
-              'X-User-Type': 'Staff',
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(payload),
           }
         );
 
-        if (!response.ok) throw new Error('Failed to complete report');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(`Failed to complete report: ${response.status} ${JSON.stringify(errorData)}`);
+        }
+
+        setErrorMessage(null);
+        alert('Report completed successfully!');
       } else {
         const payload = {
-          reportID: selectedIncident.id || HARDCODED_IDS.reportID,
-          departmentId: HARDCODED_IDS.departmentId,
-          workerId: HARDCODED_IDS.workerId,
+          reportID: selectedIncident.id,
+          departmentId: departmentId,
+          workerId: userId,
           newStatus:
             updateType === 'in-progress'
               ? 'in-progress'
@@ -182,29 +194,55 @@ export default function FieldStaffDashboard() {
           description: updateData.notes || '',
         };
 
+        console.log('Submitting status update payload:', payload);
+
         const response = await fetch(
           'http://localhost:8080/worker/updateStatus',
           {
             method: 'POST',
             headers: {
-              'X-User-Id': '123',
-              'X-Username': 'venkat',
-              'X-User-Type': 'Staff',
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(payload),
           }
         );
 
-        if (!response.ok) throw new Error('Failed to update status');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(`Failed to update status: ${response.status} ${JSON.stringify(errorData)}`);
+        }
+
+        setErrorMessage(null);
+        alert('Status updated successfully!');
       }
 
       setShowUpdatePanel(false);
       setUpdateData({ notes: '', photoCount: 0, images: [] });
-      alert('Update submitted successfully!');
+
+      // Refresh tasks after update
+      if (userId) {
+        const refreshResponse = await fetch(
+          `http://localhost:8080/worker/getTasks?workerId=${userId}`,
+          { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          const normalized = (Array.isArray(refreshData) ? refreshData : []).map((task: any) => ({
+            ...task,
+            title: task.title || task.description || 'Untitled Task',
+            location: {
+              address: task.location?.address || task.address || 'No address',
+              lat: task.lat ?? 0,
+              lng: task.lon ?? 0,
+            },
+          }));
+          setAssignedTasks(normalized);
+        }
+      }
     } catch (error) {
       console.error('Submission Error:', error);
-      alert('Error submitting update.');
+      setErrorMessage(`Error: ${error}`);
+      alert(`Error submitting update: ${error}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -227,6 +265,11 @@ export default function FieldStaffDashboard() {
             </h3>
 
             <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+              {errorMessage && (
+                <div className="p-3 rounded-lg bg-red-100 border border-red-300 text-red-700 text-sm">
+                  {errorMessage}
+                </div>
+              )}
               {tasksLoading ? (
                 <p>Loading...</p>
               ) : (
@@ -237,7 +280,7 @@ export default function FieldStaffDashboard() {
                     className={cn(
                       'p-4 rounded-xl cursor-pointer glass-card transition-all',
                       selectedIncident?.id === task.id &&
-                        'ring-2 ring-primary'
+                      'ring-2 ring-primary'
                     )}
                   >
                     <h4 className="font-semibold text-sm">{task.title}</h4>
@@ -349,8 +392,9 @@ export default function FieldStaffDashboard() {
                             }
                           >
                             <option value="">Select Status</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="assigned">Assigned</option>
                             <option value="verified">Verified</option>
-                            <option value="on-hold">On Hold</option>
                           </select>
                         )}
 

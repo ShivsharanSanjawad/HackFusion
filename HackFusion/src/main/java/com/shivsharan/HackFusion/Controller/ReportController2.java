@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.Annotation.Auditable;
 import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Repository.ReportRepository;
@@ -28,7 +29,11 @@ public class ReportController2 {
         reportService3.reOpen(reportID);
         return ResponseEntity.ok().body("REOPENED");
     }
-
+    @Auditable(
+            action = "REPORT_CLOSED",
+            entityType = "DOCUMENT",
+            uploadToIpfs = true  // Upload audit log to blockchain
+    )
     @PutMapping("/closeReport")
     public ResponseEntity<String> closeReport(@RequestParam UUID reportID) {
         // 1. Fetch the report from the DB

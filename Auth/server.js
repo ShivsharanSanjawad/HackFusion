@@ -35,10 +35,12 @@ pool.connect((err, client, release) => {
 
 const NAMESPACE_STR = process.env.UUID_NAMESPACE || '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 let NAMESPACE;
-try {
-  NAMESPACE = uuidParse(NAMESPACE_STR);
-} catch (e) {
-  console.error("CRITICAL: Invalid UUID_NAMESPACE in .env");
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+if (typeof NAMESPACE_STR === 'string' && uuidRegex.test(NAMESPACE_STR)) {
+  NAMESPACE = NAMESPACE_STR; // use string namespace which uuidv5 accepts
+} else {
+  console.warn('WARNING: Invalid or missing UUID_NAMESPACE; using uuidv5.DNS fallback.');
+  NAMESPACE = uuidv5.DNS;
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_anon_key';
@@ -72,18 +74,18 @@ app.post('/signup', async (req, res) => {
       VALUES ($1, $2, $3, $4, CURRENT_DATE) 
       RETURNING id, username as name, role, department_id;
     `;
-    
+
     // Ensure data types are safe
     const values = [
-      id, 
-      name || 'Anonymous', 
-      role || 'user', 
-      department_id ? parseInt(department_id) : null 
+      id,
+      name || 'Anonymous',
+      role || 'user',
+      department_id ? parseInt(department_id) : null
     ];
 
     console.log('Step: Executing Query with values:', values);
     const result = await pool.query(query, values);
-    
+
     console.log('Step: Query Success!');
     const token = generateToken(id);
     res.status(201).json({ token, ...result.rows[0] });
@@ -94,11 +96,12 @@ app.post('/signup', async (req, res) => {
     console.error('Error Message:', err.message);
     console.error('Error Code:', err.code); // e.g., '42P01' (table missing) or '42703' (column missing)
     console.error('Error Detail:', err.detail);
-    
-    res.status(500).json({ 
-      error: "Internal Server Error", 
+    console.error('Error Stack:', err.stack);
+
+    res.status(500).json({
+      error: "Internal Server Error",
       message: err.message,
-      code: err.code 
+      code: err.code
     });
   }
 });
@@ -110,12 +113,12 @@ app.post('/login', async (req, res) => {
 
   try {
     if (!email || !password) throw new Error("Missing credentials");
-    
+
     const attemptId = uuidv5(email + password, NAMESPACE);
     console.log('Searching for ID:', attemptId);
 
     const result = await pool.query(
-      'SELECT id, username as name, role, department_id FROM operators WHERE id = $1', 
+      'SELECT id, username as name, role, department_id FROM operators WHERE id = $1',
       [attemptId]
     );
 

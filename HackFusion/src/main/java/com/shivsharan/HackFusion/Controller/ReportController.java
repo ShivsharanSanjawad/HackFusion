@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Controller;
 
+import com.shivsharan.HackFusion.Annotation.Auditable;
 import com.shivsharan.HackFusion.DTO.ReportRequest;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
@@ -32,6 +33,11 @@ public class ReportController {
     @Autowired
     private ReportRepository reportRepository;
 
+    @Auditable(
+            action = "REPORT_CREATED",
+            entityType = "DOCUMENT",
+            uploadToIpfs = true  // Upload audit log to blockchain
+    )
     @PostMapping("/report")
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
             Report r = reportService.save(dto);
