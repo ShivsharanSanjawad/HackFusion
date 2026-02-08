@@ -14,7 +14,7 @@ public class DuplicateCheckingService {
 
     public Report findDuplicate(Report reportA){
         List<Report> reportList = reportRepository.findReportsWithinDistance_ByDepartment(reportA.getLat(), reportA.getLon(), 0.5,
-                reportA.getDepartment().getName());
+                reportA.getDepartment().getId());
 
         if(reportList.size() > 1){
             if(reportA == reportList.get(0)){

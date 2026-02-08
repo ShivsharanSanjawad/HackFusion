@@ -38,7 +38,6 @@ public class ReportController {
             ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
             r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
             r.setPriority(classificationDetailsDto.getFinalPriority());
-
             Report report2 = duplicateCheckingService.findDuplicate(r);
 
             if(report2 != null){
