@@ -39,10 +39,7 @@ public class ResponseHandler {
         AWAITING_ISSUE_SINCE,
         AWAITING_LOCATION,
         AWAITING_IMAGE,
-        COMPLETED,
-        GET_PAST_REPORTS,
-        GET_REPORT_STATUS,
-        VIEW_REPORT
+        COMPLETED
     }
 
     // Constructor: Inject Services here to ensure they are not null
