@@ -2,62 +2,31 @@ package com.shivsharan.HackFusion.Controller;
 
 import com.shivsharan.HackFusion.DTO.DepartmentRankDTO;
 import com.shivsharan.HackFusion.Model.Report;
+import com.shivsharan.HackFusion.Repository.ReportRepository;
 import com.shivsharan.HackFusion.Service.ReportService3;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
+@CrossOrigin(origins = "*")
 public class ReportController2 {
 
     @Autowired
-    ReportService3 reportService3 ;
+    private ReportService3 reportService3;
 
-
+    @Autowired
+    private ReportRepository reportRepository;
 
     @PostMapping("/reOpen")
-    public ResponseEntity reOpen(@RequestParam UUID reportId){
-        reportService3.reOpen(reportId);
-        return  ResponseEntity.ok().body("REOPENED");
-    }
-
-    @GetMapping("/getDepartmentsRankWise")
-    public ResponseEntity getDepartmentsRankWise(){
-        List<DepartmentRankDTO> ret = reportService3.getDepartmentsRankWise();
-        return ResponseEntity.ok().body(ret) ;
-    }
-    @GetMapping("/getPDFReport")
-    public ResponseEntity<String> getPDFReport(@RequestParam UUID reportID){
-        String link = reportService3.getPDFReport(reportID);
-
-        if (link == null || link.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(link);
-    }
-
-    @GetMapping("/getReport")
-    public ResponseEntity<Report> getUpvotes(@RequestParam UUID reportID){
-        Report ret = reportService3.getCompleteReport(reportID);
-
-        if (ret == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(ret);
-    }
-
-    @GetMapping("/getCivicScore")
-    public double getCivicScore(@RequestParam UUID operatorID)
-    {
-        return reportService3.getCivicScore(operatorID);
+    public ResponseEntity<String> reOpen(@RequestParam UUID reportID) {
+        // Fetches report, sets status to 'PENDING' or 'IN_PROGRESS', and saves
+        reportService3.reOpen(reportID);
+        return ResponseEntity.ok().body("REOPENED");
     }
 
     @PutMapping("/closeReport")
@@ -66,13 +35,14 @@ public class ReportController2 {
         Report report = reportRepository.findById(reportID)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
 
-        // 2. Update the status
+        // 2. Update the status to 'CLOSED'
         report.setStatus("CLOSED");
 
-        // 3. Save the updated report
+        // 3. Save the updated report record
         reportRepository.save(report);
 
         // 4. Generate the PDF
+        // Note: Ensure your PDF template handles null departments to avoid FTL errors
         String link = reportService3.getPDFReport(reportID);
 
         if (link == null || link.isEmpty()) {
@@ -81,5 +51,34 @@ public class ReportController2 {
         }
 
         return ResponseEntity.ok(link);
+    }
+
+    @GetMapping("/getDepartmentsRankWise")
+    public ResponseEntity<List<DepartmentRankDTO>> getDepartmentsRankWise() {
+        List<DepartmentRankDTO> ret = reportService3.getDepartmentsRankWise();
+        return ResponseEntity.ok().body(ret);
+    }
+
+    @GetMapping("/getPDFReport")
+    public ResponseEntity<String> getPDFReport(@RequestParam UUID reportID) {
+        String link = reportService3.getPDFReport(reportID);
+        if (link == null || link.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(link);
+    }
+
+    @GetMapping("/getReport")
+    public ResponseEntity<Report> getReport(@RequestParam UUID reportID) {
+        Report ret = reportService3.getCompleteReport(reportID);
+        if (ret == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(ret);
+    }
+
+    @GetMapping("/getCivicScore")
+    public double getCivicScore(@RequestParam UUID operatorID) {
+        return reportService3.getCivicScore(operatorID);
     }
 }

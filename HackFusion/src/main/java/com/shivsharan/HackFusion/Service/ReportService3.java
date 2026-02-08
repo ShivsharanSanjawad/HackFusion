@@ -37,6 +37,7 @@ public class ReportService3 {
         return reportRepository.getDepartmentsRankWise() ;
     }
 
+
     public String getPDFReport(UUID reportId){
         return documentService.generatePdfFromTemplate(reportId);
     }
