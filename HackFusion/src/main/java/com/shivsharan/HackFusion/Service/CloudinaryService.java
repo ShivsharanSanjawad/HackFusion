@@ -27,7 +27,7 @@ public class CloudinaryService{
                     "use_filename", false,
                     "unique_filename", true,
                     "overwrite", true,
-                    "folder", folderName
+                    "folderName", folderName
             );
             Map uploadedFile = cloudinary.uploader().upload(file.getBytes(), params);
             String publicId = (String) uploadedFile.get("public_id");
@@ -64,10 +64,9 @@ public class CloudinaryService{
         try {
             Map params = ObjectUtils.asMap(
                     "folder", folderName,
-                    "public_id", fileName + ".pdf",
-                    "resource_type", "raw",
-                    "overwrite", true,
-                    "type", "upload"
+                    "public_id", fileName, // Set the name explicitly (e.g., "report_123")
+                    "resource_type", "auto", // Important for PDFs!
+                    "overwrite", true
             );
 
             Map uploadResult = cloudinary.uploader().upload(fileBytes, params);
@@ -79,5 +78,8 @@ public class CloudinaryService{
             return null;
         }
     }
+
+
+
 
 }

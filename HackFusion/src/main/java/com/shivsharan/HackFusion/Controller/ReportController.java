@@ -33,9 +33,8 @@ public class ReportController {
     public ResponseEntity reportIssue(@RequestBody ReportRequest dto){
             Report r = reportService.save(dto);
             ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
-            r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
-            r.setPriority(classificationDetailsDto.getFinalPriority());
-
+//            r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
+//            r.setPriority(classificationDetailsDto.getFinalPriority());
             return ResponseEntity.ok().body(r.getId());
     }
     @GetMapping("/getAll")

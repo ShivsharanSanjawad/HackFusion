@@ -19,12 +19,10 @@ public class Report {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operator_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Operators senders;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_id", nullable = true)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Operators workers;
 
     @Column(name = "entry_date")

@@ -223,7 +223,7 @@ function LiveMapSection() {
   useEffect(() => {
     const fetchAllReports = async () => {
       try {
-        const response = await fetch('http://localhost:8080/getAll', {
+        const response = await fetch('http://localhost:8080/getReports', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

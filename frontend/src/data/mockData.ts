@@ -347,28 +347,6 @@ export const mockIncidents: Incident[] = [
     ],
   },
   {
-    id: 'INC-2024-006',
-    title: 'Sewage Overflow in Residential Area',
-    description: 'Sewage overflowing from manhole onto the street. Strong foul smell affecting the entire block. Health hazard for residents.',
-    category: 'sanitation',
-    status: 'reported',
-    priority: 'critical',
-    location: {
-      lat: 12.9150,
-      lng: 77.6400,
-      address: '5th Block, Jayanagar',
-      ward: 'Ward 22',
-    },
-    images: [],
-    reportedBy: mockUsers[1],
-    upvotes: 56,
-    createdAt: '2024-01-20T18:00:00Z',
-    updatedAt: '2024-01-20T18:00:00Z',
-    activityLog: [
-      { id: 'log-1', action: 'Incident Reported', actor: mockUsers[1], timestamp: '2024-01-20T18:00:00Z' },
-    ],
-  },
-  {
     id: 'INC-2024-007',
     title: 'Low Voltage Issue in Commercial Complex',
     description: 'Frequent voltage fluctuations and low voltage problem in the commercial complex. Electronic equipment getting damaged.',
