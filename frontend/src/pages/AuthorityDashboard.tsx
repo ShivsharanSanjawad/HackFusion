@@ -56,7 +56,6 @@ interface AssignWorkerModalState {
 
 export default function AuthorityDashboard() {
   const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-  const { incidents } = useIncidents();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     priority: null,
@@ -111,32 +110,28 @@ export default function AuthorityDashboard() {
   // Combine hardcoded incidents with API reports
   const allIncidents = useMemo(() => {
     const apiIncidents = apiReports.map((report: any) => ({
-      id: report.id,
-      title: report.title || report.description || 'Untitled Report',
-      description: report.description || '',
-      category: report.category || 'Other',
-      priority: report.priority ? String(report.priority).toLowerCase() as IncidentPriority : 'medium',
-      status: report.status ? String(report.status).toLowerCase() as IncidentStatus : 'reported',
-      location: {
-        address: report.location?.address || report.address || 'Unknown Location',
-        lat: report.location?.lat || report.lat || 0,
-        lng: report.location?.lng || report.lon || report.lng || 0,
-      },
-      assignedTo: report.assignedTo || null,
-      upvotes: report.upvotes || 0,
-      createdAt: report.createdAt || report.entryDate || new Date().toISOString(),
-      ...report
-    }));
+  id: report.id,
+  title: report.title || report.description || 'Untitled Report',
+  description: report.description || '',
+  // Ensure these match your IncidentStatus and IncidentPriority types
+  priority: report.priority ? String(report.priority).toLowerCase() as IncidentPriority : 'medium',
+  status: report.status ? String(report.status).toLowerCase() as IncidentStatus : 'reported',
+  category: report.category || 'Other',
+  location: {
+    address: report.address || 'Unknown Location',
+    lat: report.lat || 0,
+    lng: report.lon || 0,
+  },
+  createdAt: report.entryDate || new Date().toISOString(),
+  assignedTo: report.workers || null, // Matches your Java Entity 'workers' field
+  ...report
+}));
 
-    return [...incidents, ...apiIncidents];
-  }, [incidents, apiReports]);
-
-  const departmentIncidents = allIncidents.filter(
-    i => i.department === !i.department
-  );
+    return [...apiIncidents];
+  }, [apiReports]);
 
   const filteredIncidents = useMemo(() => {
-    return departmentIncidents.filter(incident => {
+    return allIncidents.filter(incident => {
       const matchesSearch =
         incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         incident.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,15 +152,15 @@ export default function AuthorityDashboard() {
         matchesAssignment
       );
     });
-  }, [departmentIncidents, searchQuery, filters]);
+  }, [allIncidents, searchQuery, filters]);
 
   // Analytics calculations
   const analytics = useMemo(() => {
-    const criticalCount = departmentIncidents.filter(i => i.priority === 'critical').length;
-    const highCount = departmentIncidents.filter(i => i.priority === 'high').length;
-    const inProgressCount = departmentIncidents.filter(i => i.status === 'in-progress').length;
-    const resolvedCount = departmentIncidents.filter(i => i.status === 'resolved').length;
-    const assignedCount = departmentIncidents.filter(i => i.assignedTo).length;
+    const criticalCount = allIncidents.filter(i => i.priority === 'critical').length;
+    const highCount = allIncidents.filter(i => i.priority === 'high').length;
+    const inProgressCount = allIncidents.filter(i => i.status === 'in-progress').length;
+    const resolvedCount = allIncidents.filter(i => i.status === 'resolved').length;
+    const assignedCount = allIncidents.filter(i => i.assignedTo).length;
 
     return {
       critical: criticalCount,
@@ -176,7 +171,7 @@ export default function AuthorityDashboard() {
       avgResolutionTime: 5.2,
       staffWorkload: 78,
     };
-  }, [departmentIncidents]);
+  }, [allIncidents]);
 
   const priorityColors: Record<IncidentPriority, string> = {
     critical: 'from-red-500 to-red-600',
@@ -813,8 +808,8 @@ export default function AuthorityDashboard() {
               <div className="space-y-3">
                 <label className="text-sm font-medium">Available Incidents (All Reports)</label>
                 <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                  {departmentIncidents.length > 0 ? (
-                    departmentIncidents.map((incident) => (
+                  {allIncidents.length > 0 ? (
+                    allIncidents.map((incident) => (
                       <motion.div
                         key={incident.id}
                         whileHover={{ scale: 1.02 }}
