@@ -19,6 +19,7 @@ interface SignupData {
   phone?: string;
   ward?: string;
   department?: string;
+  category?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,43 +39,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch('http://localhost:8080/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+        }),
+      });
 
-    // Find mock user based on role
-    const mockUser = mockUsers.find(u => u.role === role);
-    if (mockUser) {
-      const loggedInUser = { ...mockUser, email };
-      setUser(loggedInUser);
-      localStorage.setItem('urbanflow_user', JSON.stringify(loggedInUser));
+      if (response.ok) {
+        const data = await response.json();
+        const loggedInUser: User = {
+          id: data.id || `user-${Date.now()}`,
+          name: data.name || email.split('@')[0],
+          email: data.email || email,
+          role: data.role || role,
+          phone: data.phone,
+          ward: data.ward,
+          department: data.department,
+          createdAt: data.createdAt || new Date().toISOString(),
+        };
+        setUser(loggedInUser);
+        localStorage.setItem('urbanflow_user', JSON.stringify(loggedInUser));
+        localStorage.setItem('token', data.token || '');
+        setIsLoading(false);
+        return true;
+      } else {
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
-      return true;
+      return false;
     }
-
-    setIsLoading(false);
-    return false;
   };
 
   const signup = async (data: SignupData): Promise<boolean> => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      phone: data.phone,
-      ward: data.ward,
-      department: data.department,
-      createdAt: new Date().toISOString(),
-    };
+      if (response.ok) {
+        const responseData = await response.json();
+        const newUser: User = {
+          id: responseData.id || `user-${Date.now()}`,
+          name: responseData.name || data.name,
+          email: responseData.email || data.email,
+          role: responseData.role || data.role,
+          phone: responseData.phone || data.phone,
+          ward: responseData.ward || data.ward,
+          department: responseData.department || data.department,
+          createdAt: responseData.createdAt || new Date().toISOString(),
+        };
 
-    setUser(newUser);
-    localStorage.setItem('urbanflow_user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+        setUser(newUser);
+        localStorage.setItem('urbanflow_user', JSON.stringify(newUser));
+        localStorage.setItem('token', responseData.token || '');
+        setIsLoading(false);
+        return true;
+      } else {
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const logout = () => {
