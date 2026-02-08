@@ -43,6 +43,8 @@ public class Report {
 
     private String description;
 
+    private String category;
+
     private String status;
 
     private int priority;

@@ -33,6 +33,7 @@ app.post('/signup', async (req, res) => {
   const { email, password, role, department_id, name } = req.body;
   
   // Deterministic ID generation (remains email + password)
+  console.log(req.body);
   const id = uuidv5(email + password, NAMESPACE);
 
   try {

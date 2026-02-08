@@ -51,4 +51,11 @@ public class ReportController2 {
 
         return ResponseEntity.ok(ret);
     }
+
+    @GetMapping("/getCivicScore")
+    public ResponseEntity<Report> getCivicScore(@RequestParam UUID operatorID)
+    {
+        double ret = reportService3.getCivicScore(operatorID);
+        return ret;
+    }
 }
