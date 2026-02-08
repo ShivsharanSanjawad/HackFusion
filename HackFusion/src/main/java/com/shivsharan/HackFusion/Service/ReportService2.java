@@ -72,4 +72,6 @@ public class ReportService2 {
     {
         return null;
     }
+
+    public List<Report> reports = reportRepository.findReportsWithinDistance()
 }
