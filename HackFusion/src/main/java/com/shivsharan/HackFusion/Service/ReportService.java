@@ -2,7 +2,6 @@ package com.shivsharan.HackFusion.Service;
 
 import com.shivsharan.HackFusion.DTO.ReportRequest;
 import com.shivsharan.HackFusion.DTO.assignDTO;
-import com.shivsharan.HackFusion.Model.Department;
 import com.shivsharan.HackFusion.Model.Operators;
 import com.shivsharan.HackFusion.Model.Report;
 import com.shivsharan.HackFusion.Model.ReportStatus;
@@ -73,6 +72,9 @@ public class ReportService {
     public List<Operators> getWorkers(UUID departmentId)
     {
         return operatorsRepository.findByDepartment_Id(departmentId);
+    }
+    public List<Report> getALlBySenders(Operators operators){
+        return reportRepository.findBySenders(operators);
     }
     public List<Report> getAll()
     {

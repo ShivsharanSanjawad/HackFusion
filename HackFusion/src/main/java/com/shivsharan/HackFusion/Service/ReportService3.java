@@ -57,6 +57,7 @@ public class ReportService3 {
     }
     public List<Report> getClump(double lat, double lon, double dist)
     {
-        return null;
+        List<Report> reports = reportRepository.findReportsWithinDistance(lat, lon, dist);
+        return reports;
     }
 }

@@ -61,6 +61,16 @@ public class IssueBot extends AbilityBot {
                 .build();
     }
 
+    public Ability getAllReportsCommand() {
+        return Ability.builder()
+                .name("check history")
+                .info("See all past reports registered")
+                .locality(Locality.ALL)
+                .privacy(Privacy.PUBLIC)
+                .action(ctx -> responseHandler.replyToHistory(ctx.chatId()))
+                .build();
+    }
+
     @Override
     public void onUpdateReceived(Update update) {
         super.onUpdateReceived(update);

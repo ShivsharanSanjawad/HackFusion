@@ -38,6 +38,4 @@ public class WorkerController {
         reportService2.completeReportByWorker(dto);
         return ResponseEntity.ok().body("COMPLETED");
     }
-
-
 }

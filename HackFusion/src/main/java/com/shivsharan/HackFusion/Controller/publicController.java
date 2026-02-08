@@ -26,6 +26,6 @@ public class publicController {
     @GetMapping("/clump")
     public ResponseEntity createClump(double lat, double lon, double dist){
         List<Report> stats = reportService3.getClump(lat, lon, dist);
-        return ResponseEntity.ok("NOT DONE");
+        return ResponseEntity.ok().body(stats);
     }
 }

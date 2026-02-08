@@ -10,6 +10,7 @@ import com.shivsharan.HackFusion.Repository.ReportRepository;
 import com.shivsharan.HackFusion.Repository.ReportStatusRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -68,8 +69,19 @@ public class ReportService2 {
         reportStatusRepository.save(history);
         return true ;
     }
-    public String completeReportByWorker(CompletionDTO dto)
+    public void completeReportByWorker(CompletionDTO dto)
     {
-        return null;
+        Report report = reportRepository.findById(dto.getReportID())
+                .orElseThrow(() -> new RuntimeException("Report with ID " + dto.getReportID() + " not found"));
+
+        report.setStatus("COMPLETED");
+        reportRepository.save(report);
+
+        ReportStatus history = new ReportStatus();
+        history.setReports(report);
+        history.setDate(LocalDate.now());
+        history.setStatus("COMPLETED");
+
+        reportStatusRepository.save(history);
     }
 }

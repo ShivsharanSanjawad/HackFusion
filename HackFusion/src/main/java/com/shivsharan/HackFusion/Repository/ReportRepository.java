@@ -77,8 +77,17 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
             "cos(radians(r.lon) - radians(:lon)) + sin(radians(:lat)) * " +
             "sin(radians(r.lat)))) <= :dist",
             nativeQuery = true)
-    List<Report> findReportsWithinDistance(@Param("lat") double lat,
+    List<Report> findReportsWithinDistance_ByDepartment(@Param("lat") double lat,
                                            @Param("lon") double lon,
                                            @Param("dist") double dist,
                                            @Param("deptId") String depIt);
+
+    @Query(value = "SELECT * FROM reports r WHERE " +
+            "(6371 * acos(cos(radians(:lat)) * cos(radians(r.lat)) * " +
+            "cos(radians(r.lon) - radians(:lon)) + sin(radians(:lat)) * " +
+            "sin(radians(r.lat)))) <= :dist",
+            nativeQuery = true)
+    List<Report> findReportsWithinDistance(@Param("lat") double lat,
+                                                        @Param("lon") double lon,
+                                                        @Param("dist") double dist);
 }

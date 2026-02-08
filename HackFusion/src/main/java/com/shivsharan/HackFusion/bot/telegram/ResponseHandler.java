@@ -27,6 +27,11 @@ public class ResponseHandler {
     private final MLpipeline mLpipeline;
     private final CloudinaryService cloudinaryService;
 
+    public void replyToHistory(Long chatidx) {
+        Operators operators = operatorsService.findByUsername(String.valueOf(chatidx));
+        reportService.getALlBySenders(operators);
+    }
+
     public enum UserState {
         START,
         AWAITING_DESCRIPTION,
@@ -34,7 +39,10 @@ public class ResponseHandler {
         AWAITING_ISSUE_SINCE,
         AWAITING_LOCATION,
         AWAITING_IMAGE,
-        COMPLETED
+        COMPLETED,
+        GET_PAST_REPORTS,
+        GET_REPORT_STATUS,
+        VIEW_REPORT
     }
 
     // Constructor: Inject Services here to ensure they are not null
@@ -258,11 +266,4 @@ public class ResponseHandler {
         }
     }
 
-    // TODO: You must implement this based on your User/Operator Service
-    private Operators getOrCreateOperator(long telegramChatId) {
-        // Example logic:
-        // return operatorRepository.findByTelegramId(telegramChatId)
-        //         .orElseGet(() -> operatorService.createGuestUser(telegramChatId));
-        return null; // <-- REPLACE THIS with actual logic or the save will fail
-    }
 }
