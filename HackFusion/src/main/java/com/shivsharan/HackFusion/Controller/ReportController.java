@@ -35,6 +35,7 @@ public class ReportController {
             ClassificationDetailsDto classificationDetailsDto = mLpipeline.update(r);
             r.setDepartment(departmentService.findByName(classificationDetailsDto.getFinalDepartment()));
             r.setPriority(classificationDetailsDto.getFinalPriority());
+            
 
             return ResponseEntity.ok().body(r.getId());
     }
