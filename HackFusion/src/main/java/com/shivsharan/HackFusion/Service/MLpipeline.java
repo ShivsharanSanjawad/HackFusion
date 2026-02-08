@@ -73,12 +73,12 @@ public class MLpipeline {
 
     private String generatePrompt(Report r) {
         List<String> validDepartments = List.of(
-                "Roads & Transport",
-                "Water Supply & Sewage",
-                "Electricity & Power",
-                "Sanitation & Waste",
-                "Public Parks & Forestry",
-                "Street Lighting"
+                "Engineering",
+            "MMRDA",
+            "MMRCL",
+            "BEST",
+            "Police Department",
+            "Public Works Department"
         );
 
         String safeSince = (r.getIssueSince() != null) ? r.getIssueSince().toString() : "Not specified";

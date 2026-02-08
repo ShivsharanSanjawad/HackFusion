@@ -1,59 +1,60 @@
-require('dotenv').config();
-const express = require('express');
-const { Pool } = require('pg');
-const { v5: uuidv5, parse: uuidParse } = require('uuid');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
-
-// UUID Namespace - ensures email+pass always creates the same UUID
-const NAMESPACE = uuidParse(process.env.UUID_NAMESPACE || '6ba7b810-9dad-11d1-80b4-00c04fd430c8');
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_anon_key';
-
-// JWT contains ONLY the UUID for full anonymity
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '24h' });
+// --- Updated generateToken Function ---
+// Now accepts id AND name to store in the JWT payload
+const generateToken = (userId, name) => {
+  return jwt.sign(
+    { 
+      id: userId, 
+      name: name // Including name in the token
+    }, 
+    JWT_SECRET, 
+    { expiresIn: '24h' }
+  );
 };
 
 // --- SIGNUP ---
 app.post('/signup', async (req, res) => {
+  console.log('>>> [SIGNUP START]');
   const { email, password, role, department_id, name } = req.body;
-  const id = uuidv5(email + password, NAMESPACE);
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Missing email or password" });
+  }
 
   try {
+    const id = uuidv5(email + password, NAMESPACE);
+    const displayName = name || 'Anonymous'; // Variable to hold the name
+
     const query = `
-      INSERT INTO operators (id, username, email, role, department_id, join_date)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+      INSERT INTO operators (id, username, role, department_id, join_date)
+      VALUES ($1, $2, $3, $4, CURRENT_DATE) 
       RETURNING id, username as name, role, department_id;
     `;
-    const values = [id, name, email, role, department_id || null];
+    
+    const values = [id, displayName, role || 'user', department_id ? parseInt(department_id) : null];
     const result = await pool.query(query, values);
     
-    const token = generateToken(id);
+    // Pass displayName to the token generator
+    const token = generateToken(id, displayName);
+    
+    console.log('Step: Signup Success!');
     res.status(201).json({ token, ...result.rows[0] });
+
   } catch (err) {
-    if (err.code === '23505') return res.status(400).json({ error: "User already exists" });
+    console.error('!!! SIGNUP FAILED !!!', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 // --- LOGIN ---
 app.post('/login', async (req, res) => {
+  console.log('>>> [LOGIN START]');
   const { email, password } = req.body;
-  const attemptId = uuidv5(email + password, NAMESPACE);
 
   try {
+    if (!email || !password) throw new Error("Missing credentials");
+    
+    const attemptId = uuidv5(email + password, NAMESPACE);
+
     const result = await pool.query(
       'SELECT id, username as name, role, department_id FROM operators WHERE id = $1', 
       [attemptId]
@@ -61,14 +62,17 @@ app.post('/login', async (req, res) => {
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      const token = generateToken(user.id);
+      
+      // Pass the name from the database result to the token generator
+      const token = generateToken(user.id, user.name);
+      
+      console.log('Login Success');
       res.json({ token, ...user });
     } else {
       res.status(401).json({ error: "Invalid credentials" });
     }
   } catch (err) {
+    console.error('!!! LOGIN FAILED !!!', err.message);
     res.status(500).json({ error: err.message });
   }
 });
-
-app.listen(3000, () => console.log('Backend running on port 3000'));

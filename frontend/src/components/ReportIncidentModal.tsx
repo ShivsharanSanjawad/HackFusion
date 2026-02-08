@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext'; // Ensure this path is correct
 
 const categories = [
   { id: '550e8400-e29b-41d4-a716-446655440000', label: 'Engineering', icon: Zap, color: 'text-yellow-500' },
@@ -35,6 +36,7 @@ interface ReportIncidentModalProps {
 }
 
 export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalProps) {
+  const { user } = useAuth(); 
   const [step, setStep] = useState(1);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -105,11 +107,16 @@ export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalP
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+      alert("Please log in to report an incident.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const uploadedMediaUrls: string[] = [];
 
-      // 1. Upload each file to Cloudinary via Spring Boot
+      // 1. Upload each file to Cloudinary via Spring Boot endpoint
       for (const file of images) {
         const uploadData = new FormData();
         uploadData.append('file', file);
@@ -125,32 +132,37 @@ export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalP
         uploadedMediaUrls.push(cloudUrl);
       }
 
-      // 2. Construct final payload
+      // 2. Construct payload based on ReportRequest DTO requirements
+      // Error log indicates 'senders' is UNRECOGNIZED. Use 'username'.
       const payload = {
-        username: "alice_tech", // Ensure this exists in your 'operators' table
-        issue_since: formData.sinceDate || new Date().toISOString().split('T')[0],
+        username: user.name, // String from JWT context
+        issue_since: formData.sinceDate || new Date().toISOString().split('T')[0], // snake_case as per DTO expectations
         description: `${formData.title}: ${formData.description}`,
         lat: location?.lat || 18.5204,
         lon: location?.lng || 73.8567,
         media_url: uploadedMediaUrls,
-        department_id: formData.department
+        department_id: formData.department // UUID string from category selection
       };
 
-      // 3. Submit Report
+      // 3. Submit Report to Spring Boot
       const response = await fetch("http://localhost:8080/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error("Failed to save report to database");
+      if (!response.ok) {
+        const errorJson = await response.json();
+        console.error("Server Error Response:", errorJson);
+        throw new Error(errorJson.message || "Failed to save report to database");
+      }
 
       alert("Report submitted successfully!");
       onOpenChange(false);
       resetForm();
 
     } catch (error: any) {
-      console.error(error);
+      console.error("Submission Error:", error);
       alert(error.message || "Error during submission");
     } finally {
       setIsSubmitting(false);
@@ -163,15 +175,14 @@ export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalP
     setPreviews([]);
     setLocation(null);
     setFormData({ title: '', description: '', department: '', locationAddress: '', sinceDate: '' });
+    setErrors({});
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Report New Issue</span>
-          </DialogTitle>
+          <DialogTitle>Report New Issue</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2 mb-6">
@@ -186,53 +197,73 @@ export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalP
               <div>
                 <label className="text-sm font-medium">Issue Title</label>
                 <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Broken Street Light" />
-                {errors.title && <p className="text-red-500 text-xs">{errors.title}</p>}
+                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium">Description</label>
                 <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} />
-                {errors.description && <p className="text-red-500 text-xs">{errors.description}</p>}
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
               </div>
             </motion.div>
           )}
 
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <label className="text-sm font-medium">Select Department</label>
               <div className="grid grid-cols-2 gap-2">
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
+                    type="button"
                     onClick={() => setFormData({ ...formData, department: cat.id })}
-                    className={cn('p-3 border rounded-lg flex items-center gap-2', formData.department === cat.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200')}
+                    className={cn('p-3 border rounded-lg flex items-center gap-2 transition-all', formData.department === cat.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 hover:bg-gray-50')}
                   >
                     <cat.icon className={cn('w-4 h-4', cat.color)} />
-                    <span className="text-xs">{cat.label}</span>
+                    <span className="text-xs font-medium">{cat.label}</span>
                   </button>
                 ))}
               </div>
-              <div className="flex gap-2">
-                <Input value={formData.locationAddress} onChange={(e) => setFormData({ ...formData, locationAddress: e.target.value })} placeholder="Location" />
-                <Button variant="outline" onClick={detectLocation}><Navigation className="w-4 h-4" /></Button>
+              {errors.department && <p className="text-red-500 text-xs">{errors.department}</p>}
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Incident Location</label>
+                <div className="flex gap-2">
+                  <Input value={formData.locationAddress} onChange={(e) => setFormData({ ...formData, locationAddress: e.target.value })} placeholder="Address or Landmarks" />
+                  <Button variant="outline" type="button" onClick={detectLocation}>
+                    <Navigation className="w-4 h-4" />
+                  </Button>
+                </div>
+                {errors.location && <p className="text-red-500 text-xs">{errors.location}</p>}
               </div>
-              <Input type="date" value={formData.sinceDate} onChange={(e) => setFormData({ ...formData, sinceDate: e.target.value })} />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Issue Since (Optional)</label>
+                <Input type="date" value={formData.sinceDate} onChange={(e) => setFormData({ ...formData, sinceDate: e.target.value })} />
+              </div>
             </motion.div>
           )}
 
           {step === 3 && (
             <motion.div key="s3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div 
-                className="border-2 border-dashed p-8 rounded-xl text-center cursor-pointer hover:bg-gray-50"
+                className="border-2 border-dashed p-8 rounded-xl text-center cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <ImageIcon className="w-10 h-10 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm">Click to upload images (Max 5)</p>
+                <p className="text-sm font-medium">Click to upload images (Max 5)</p>
                 <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
               </div>
               <div className="grid grid-cols-5 gap-2">
                 {previews.map((p, i) => (
-                  <div key={i} className="relative">
-                    <img src={p} className="w-full h-16 object-cover rounded" alt="preview" />
-                    <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                  <div key={i} className="relative aspect-square">
+                    <img src={p} className="w-full h-full object-cover rounded-lg" alt="preview" />
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeImage(i); }} 
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -241,23 +272,42 @@ export function ReportIncidentModal({ open, onOpenChange }: ReportIncidentModalP
           )}
 
           {step === 4 && (
-            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-bold mb-2">Review Report</h4>
-              <p className="text-sm"><strong>Title:</strong> {formData.title}</p>
-              <p className="text-sm"><strong>Dept:</strong> {categories.find(c => c.id === formData.department)?.label}</p>
-              <p className="text-sm"><strong>Images:</strong> {images.length}</p>
+            <motion.div key="s4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-gray-50 rounded-lg space-y-3">
+              <h4 className="font-bold text-sm border-b pb-2">Review Summary</h4>
+              <div className="grid grid-cols-2 gap-y-2 text-xs">
+                <span className="text-gray-500">Reporter:</span> <span className="font-medium">{user?.name}</span>
+                <span className="text-gray-500">Title:</span> <span className="font-medium">{formData.title}</span>
+                <span className="text-gray-500">Dept:</span> <span className="font-medium">{categories.find(c => c.id === formData.department)?.label}</span>
+                <span className="text-gray-500">Photos:</span> <span className="font-medium">{images.length} files</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="flex gap-3 mt-6">
-          {step > 1 && <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">Back</Button>}
+          {step > 1 && (
+            <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+              Back
+            </Button>
+          )}
           {step < 4 ? (
-            <Button onClick={() => validateStep(step) && setStep(step + 1)} className="flex-1 bg-blue-600 hover:bg-blue-700">Next</Button>
+            <Button 
+              onClick={() => validateStep(step) && setStep(step + 1)} 
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Next
+            </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 bg-green-600 hover:bg-green-700">
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-              {isSubmitting ? "Uploading..." : "Submit Report"}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting} 
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</>
+              ) : (
+                <><CheckCircle2 className="w-4 h-4 mr-2" /> Confirm & Submit</>
+              )}
             </Button>
           )}
         </div>
