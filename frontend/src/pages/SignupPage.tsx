@@ -39,13 +39,6 @@ const roles = [
     color: 'from-blue-500 to-cyan-500',
   },
   { 
-    id: 'authority' as UserRole, 
-    label: 'Authority', 
-    icon: Briefcase, 
-    description: 'Manage department tasks',
-    color: 'from-purple-500 to-pink-500',
-  },
-  { 
     id: 'field-staff' as UserRole, 
     label: 'Field Staff', 
     icon: Wrench, 
@@ -71,9 +64,9 @@ export default function SignupPage() {
     role: 'citizen' as UserRole,
     name: '',
     email: '',
-    phone: '',
     ward: '',
     department: '',
+    category: '',
     password: '',
     confirmPassword: '',
     agreeToTerms: false,
@@ -106,6 +99,9 @@ export default function SignupPage() {
         }
         if ((formData.role === 'authority' || formData.role === 'field-staff') && !formData.department) {
           newErrors.department = 'Please select your department';
+        }
+        if (formData.role === 'field-staff' && !formData.category) {
+          newErrors.category = 'Please select your category';
         }
         break;
       case 4:
@@ -145,9 +141,9 @@ export default function SignupPage() {
       email: formData.email,
       password: formData.password,
       role: formData.role,
-      phone: formData.phone,
       ward: formData.ward,
       department: formData.department,
+      category: formData.category,
     });
 
     if (success) {
@@ -252,21 +248,6 @@ export default function SignupPage() {
               </div>
               {errors.email && <p className="text-sm text-danger">{errors.email}</p>}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  value={formData.phone}
-                  onChange={(e) => updateFormData('phone', e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
           </motion.div>
         );
 
@@ -277,8 +258,75 @@ export default function SignupPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             className="space-y-5"
-          >
-            {formData.role === 'citizen' ? (
+          >              
+            {formData.role === 'field-staff' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Select Your Department</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => updateFormData('department', value)}
+                  >
+                    <SelectTrigger className={errors.department ? 'border-danger' : ''}>
+                      <SelectValue placeholder="Choose your department..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mockDepartments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.name}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            {dept.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.department && <p className="text-sm text-danger">{errors.department}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Select Your Category</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => updateFormData('category', value)}
+                  >
+                    <SelectTrigger className={errors.category ? 'border-danger' : ''}>
+                      <SelectValue placeholder="Choose your category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="power">
+                        <div className="flex items-center gap-2">
+                          ⚡ Power
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="water">
+                        <div className="flex items-center gap-2">
+                          💧 Water
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="roads">
+                        <div className="flex items-center gap-2">
+                          🛣️ Roads
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="sanitation">
+                        <div className="flex items-center gap-2">
+                          🧹 Sanitation
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="streetlights">
+                        <div className="flex items-center gap-2">
+                          💡 Streetlights
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.category && <p className="text-sm text-danger">{errors.category}</p>}
+                </div>
+              </>
+            )}
+
+            {formData.role === 'citizen' && (
               <div className="space-y-2">
                 <Label>Select Your Ward</Label>
                 <Select
@@ -290,43 +338,16 @@ export default function SignupPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {wards.map((ward) => (
-                      <SelectItem key={ward.id} value={ward.id}>
-                        {ward.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.ward && <p className="text-sm text-danger">{errors.ward}</p>}
-                
-                <div className="mt-4 p-4 rounded-xl bg-muted/50">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPinned className="w-4 h-4" />
-                    <span>We'll use this to show relevant local incidents</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Select Your Department</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) => updateFormData('department', value)}
-                >
-                  <SelectTrigger className={errors.department ? 'border-danger' : ''}>
-                    <SelectValue placeholder="Choose your department..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockDepartments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.name}>
+                      <SelectItem key={ward.id} value={ward.name}>
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4" />
-                          {dept.name}
+                          <MapPinned className="w-4 h-4" />
+                          {ward.name}
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.department && <p className="text-sm text-danger">{errors.department}</p>}
+                {errors.ward && <p className="text-sm text-danger">{errors.ward}</p>}
               </div>
             )}
           </motion.div>
