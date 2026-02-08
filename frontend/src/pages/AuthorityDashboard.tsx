@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Filter,
@@ -55,8 +55,7 @@ interface AssignWorkerModalState {
 }
 
 export default function AuthorityDashboard() {
-  const { user } = useAuth();
-  const { incidents } = useIncidents();
+  const userId = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     priority: null,
@@ -65,6 +64,8 @@ export default function AuthorityDashboard() {
     assignmentStatus: null,
   });
   const [expandedMetrics, setExpandedMetrics] = useState<string | null>(null);
+  const [apiReports, setApiReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [collabModal, setCollabModal] = useState<CollabModalState>({
     isOpen: false,
     incident: null,
@@ -77,13 +78,60 @@ export default function AuthorityDashboard() {
     step: 'select-incident',
   });
 
-  const userDepartment = user?.department;
-  const departmentIncidents = incidents.filter(
-    i => i.department === userDepartment || !i.department
-  );
+  // Fetch all reports from API
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('All Reports from API:', data);
+        setApiReports(data);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+        setApiReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  // Combine hardcoded incidents with API reports
+  const allIncidents = useMemo(() => {
+    const apiIncidents = apiReports.map((report: any) => ({
+  id: report.id,
+  title: report.title || report.description || 'Untitled Report',
+  description: report.description || '',
+  // Ensure these match your IncidentStatus and IncidentPriority types
+  priority: report.priority ? String(report.priority).toLowerCase() as IncidentPriority : 'medium',
+  status: report.status ? String(report.status).toLowerCase() as IncidentStatus : 'reported',
+  category: report.category || 'Other',
+  location: {
+    address: report.address || 'Unknown Location',
+    lat: report.lat || 0,
+    lng: report.lon || 0,
+  },
+  createdAt: report.entryDate || new Date().toISOString(),
+  assignedTo: report.workers || null, // Matches your Java Entity 'workers' field
+  ...report
+}));
+
+    return [...apiIncidents];
+  }, [apiReports]);
 
   const filteredIncidents = useMemo(() => {
-    return departmentIncidents.filter(incident => {
+    return allIncidents.filter(incident => {
       const matchesSearch =
         incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         incident.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -104,16 +152,16 @@ export default function AuthorityDashboard() {
         matchesAssignment
       );
     });
-  }, [departmentIncidents, searchQuery, filters]);
+  }, [allIncidents, searchQuery, filters]);
 
   // Analytics calculations
   const analytics = useMemo(() => {
-    const criticalCount = departmentIncidents.filter(i => i.priority === 'critical').length;
-    const highCount = departmentIncidents.filter(i => i.priority === 'high').length;
-    const inProgressCount = departmentIncidents.filter(i => i.status === 'in-progress').length;
-    const resolvedCount = departmentIncidents.filter(i => i.status === 'resolved').length;
-    const assignedCount = departmentIncidents.filter(i => i.assignedTo).length;
-    
+    const criticalCount = allIncidents.filter(i => i.priority === 'critical').length;
+    const highCount = allIncidents.filter(i => i.priority === 'high').length;
+    const inProgressCount = allIncidents.filter(i => i.status === 'in-progress').length;
+    const resolvedCount = allIncidents.filter(i => i.status === 'resolved').length;
+    const assignedCount = allIncidents.filter(i => i.assignedTo).length;
+
     return {
       critical: criticalCount,
       high: highCount,
@@ -123,7 +171,7 @@ export default function AuthorityDashboard() {
       avgResolutionTime: 5.2,
       staffWorkload: 78,
     };
-  }, [departmentIncidents]);
+  }, [allIncidents]);
 
   const priorityColors: Record<IncidentPriority, string> = {
     critical: 'from-red-500 to-red-600',
@@ -197,177 +245,165 @@ export default function AuthorityDashboard() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-        >
-          <div>
-            <h1 className="text-3xl font-display font-bold">Authority Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage incidents and coordinate team response for {userDepartment}
-            </p>
-          </div>
-        </motion.div>
 
         {/* Metrics Grid - Redesigned */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-  {/* Critical Issues - Red Theme */}
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4 }}
-    whileHover={{ y: -8, transition: { duration: 0.2 } }}
-    className="relative group"
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-red-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
-    <div className="relative glass-card p-3 rounded-2xl border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-        </div>
-        <motion.div
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="w-2 h-2 rounded-full bg-red-500"
-        />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground font-medium">Critical Issues</p>
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold">{analytics.critical}</span>
-          <span className="text-red-500 text-xs font-semibold mb-1">URGENT</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Requires immediate attention</p>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500/0 via-red-500/50 to-red-500/0 rounded-b-2xl" />
-    </div>
-  </motion.div>
-
-  {/* High Priority - Orange Theme */}
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.1 }}
-    whileHover={{ y: -8, transition: { duration: 0.2 } }}
-    className="relative group"
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
-    <div className="relative glass-card p-3 rounded-2xl border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 rounded-xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-          <TrendingUp className="w-6 h-6 text-orange-500" />
-        </div>
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground font-medium">High Priority</p>
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold">{analytics.high}</span>
-          <span className="text-orange-500 text-xs font-semibold mb-1">HIGH</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Next in queue</p>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500/0 via-orange-500/50 to-orange-500/0 rounded-b-2xl" />
-    </div>
-  </motion.div>
-
-  {/* In Progress - Blue Theme */}
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.2 }}
-    whileHover={{ y: -8, transition: { duration: 0.2 } }}
-    className="relative group"
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
-    <div className="relative glass-card p-3 rounded-2xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-          <Clock className="w-6 h-6 text-blue-500" />
-        </div>
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground font-medium">In Progress</p>
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold">{analytics.inProgress}</span>
-          <span className="text-blue-500 text-xs font-semibold mb-1">ACTIVE</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Currently being handled</p>
-      </div>
-      <motion.div 
-        className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 rounded-b-2xl"
-        animate={{ 
-          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-        }}
-        transition={{ duration: 3, repeat: Infinity }}
-        style={{ backgroundSize: '200% 100%' }}
-      />
-    </div>
-  </motion.div>
-
-  {/* Resolved - Green Theme */}
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.3 }}
-    whileHover={{ y: -8, transition: { duration: 0.2 } }}
-    className="relative group"
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
-    <div className="relative glass-card p-3 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all duration-300 overflow-hidden">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-          <CheckCircle2 className="w-6 h-6 text-green-500" />
-        </div>
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 1] }}
-          transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-        >
-          <CheckCircle2 className="w-4 h-4 text-green-500" />
-        </motion.div>
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground font-medium">Resolved This Month</p>
-        <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold">{analytics.resolved}</span>
-          <span className="text-green-500 text-xs font-semibold mb-1">✓ DONE</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Completed successfully</p>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500/0 via-green-500/50 to-green-500/0 rounded-b-2xl" />
-      
-      {/* Celebration particles on hover */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 1 }}
-      >
-        {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Critical Issues - Red Theme */}
           <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-green-500 rounded-full"
-            style={{
-              left: `${20 + i * 15}%`,
-              top: '50%',
-            }}
-            animate={{
-              y: [0, -30, -60],
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0.5],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              delay: i * 0.2,
-              repeatDelay: 1,
-            }}
-          />
-        ))}
-      </motion.div>
-    </div>
-  </motion.div>
-</div>
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-red-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+            <div className="relative glass-card p-3 rounded-2xl border border-red-500/20 hover:border-red-500/40 transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+                  <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-2 h-2 rounded-full bg-red-500"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground font-medium">Critical Issues</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold">{analytics.critical}</span>
+                  <span className="text-red-500 text-xs font-semibold mb-1">URGENT</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Requires immediate attention</p>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500/0 via-red-500/50 to-red-500/0 rounded-b-2xl" />
+            </div>
+          </motion.div>
+
+          {/* High Priority - Orange Theme */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-orange-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+            <div className="relative glass-card p-3 rounded-2xl border border-orange-500/20 hover:border-orange-500/40 transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
+                  <TrendingUp className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground font-medium">High Priority</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold">{analytics.high}</span>
+                  <span className="text-orange-500 text-xs font-semibold mb-1">HIGH</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Next in queue</p>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500/0 via-orange-500/50 to-orange-500/0 rounded-b-2xl" />
+            </div>
+          </motion.div>
+
+          {/* In Progress - Blue Theme */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-blue-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+            <div className="relative glass-card p-3 rounded-2xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                  <Clock className="w-6 h-6 text-blue-500" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground font-medium">In Progress</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold">{analytics.inProgress}</span>
+                  <span className="text-blue-500 text-xs font-semibold mb-1">ACTIVE</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Currently being handled</p>
+              </div>
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 rounded-b-2xl"
+                animate={{
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
+                style={{ backgroundSize: '200% 100%' }}
+              />
+            </div>
+          </motion.div>
+
+          {/* Resolved - Green Theme */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
+            className="relative group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-green-600/5 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+            <div className="relative glass-card p-3 rounded-2xl border border-green-500/20 hover:border-green-500/40 transition-all duration-300 overflow-hidden">
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 rounded-xl bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                </div>
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                >
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                </motion.div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground font-medium">Resolved This Month</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold">{analytics.resolved}</span>
+                  <span className="text-green-500 text-xs font-semibold mb-1">✓ DONE</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Completed successfully</p>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500/0 via-green-500/50 to-green-500/0 rounded-b-2xl" />
+
+              {/* Celebration particles on hover */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+              >
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1 h-1 bg-green-500 rounded-full"
+                    style={{
+                      left: `${20 + i * 15}%`,
+                      top: '50%',
+                    }}
+                    animate={{
+                      y: [0, -30, -60],
+                      opacity: [0, 1, 0],
+                      scale: [0, 1, 0.5],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      delay: i * 0.2,
+                      repeatDelay: 1,
+                    }}
+                  />
+                ))}
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
 
         {/* Advanced Filtering */}
         <motion.div
@@ -606,8 +642,8 @@ export default function AuthorityDashboard() {
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Notification
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => {
                   if (filteredIncidents.length > 0) {
@@ -622,8 +658,8 @@ export default function AuthorityDashboard() {
                 <Building2 className="w-4 h-4 mr-2" />
                 Collab with other depts
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => {
                   setAssignWorkerModal({
@@ -654,7 +690,7 @@ export default function AuthorityDashboard() {
                 Select a department to collaborate on this incident
               </DialogDescription>
             </DialogHeader>
-            
+
             {collabModal.incident && (
               <div className="space-y-4">
                 {/* Incident Details */}
@@ -761,19 +797,19 @@ export default function AuthorityDashboard() {
                 {assignWorkerModal.step === 'select-incident' ? 'Select Incident' : 'Assign Workers'}
               </DialogTitle>
               <DialogDescription>
-                {assignWorkerModal.step === 'select-incident' 
+                {assignWorkerModal.step === 'select-incident'
                   ? 'Choose an incident to assign workers to'
                   : 'Select workers to assign to this incident'}
               </DialogDescription>
             </DialogHeader>
 
             {assignWorkerModal.step === 'select-incident' ? (
-              // Step 1: Select Incident
+              // Step 1: Select Incident - Show all department incidents
               <div className="space-y-3">
-                <label className="text-sm font-medium">Available Incidents</label>
+                <label className="text-sm font-medium">Available Incidents (All Reports)</label>
                 <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                  {filteredIncidents.length > 0 ? (
-                    filteredIncidents.map((incident) => (
+                  {allIncidents.length > 0 ? (
+                    allIncidents.map((incident) => (
                       <motion.div
                         key={incident.id}
                         whileHover={{ scale: 1.02 }}
