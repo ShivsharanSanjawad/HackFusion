@@ -1,5 +1,6 @@
 package com.shivsharan.HackFusion.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -8,6 +9,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "report_status_history") // "report_status" is also a good name
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class ReportStatus {
 
     @Id

@@ -4,13 +4,10 @@ INSERT INTO departments (id, name) VALUES
                                        ('a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6', 'Data Science');
 
 INSERT INTO operators (id, username, role, join_date, department_id) VALUES
-
-('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'alice_tech', 'Staff', '2023-01-15', '550e8400-e29b-41d4-a716-446655440000'),
-
-('b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'bob_ops', 'Staff', '2023-03-22', '7c9e6679-7425-40de-944b-e07fc1f90ae7'),
-
-('6d7e8f9a-0b1c-2d3e-4f5g-6h7i8j9k0l1m', 'charlie_data', 'Staff', '2023-06-10', 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6');
-
+                                                                         ('f47ac10b-58cc-4372-a567-0e02b2c3d479', 'alice_tech', 'Staff', '2023-01-15', '550e8400-e29b-41d4-a716-446655440000'),
+                                                                         ('b2d4e6f8-a1c3-4e5b-9d7f-8a0b1c2d3e4f', 'bob_ops', 'Staff', '2023-03-22', '7c9e6679-7425-40de-944b-e07fc1f90ae7'),
+-- CORRECTED UUID BELOW (Matches the one used in your reports table)
+                                                                         ('6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a', 'charlie_data', 'Staff', '2023-06-10', 'a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6');
 INSERT INTO reports (id, description, entry_date, issue_since, lat, lon, priority, status, upvotes, department_id, operator_id, assigned_id) VALUES
 -- Reports for Alice (Engineering - Mumbai South/Central)
 ('11111111-1111-4111-a111-111111111111', 'Structural cracks on Marine Drive promenade', '2024-01-01', '2023-12-25', 18.9440, 72.8230, 1, 'OPEN', 12, '550e8400-e29b-41d4-a716-446655440000', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479'),
