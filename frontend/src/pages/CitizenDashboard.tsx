@@ -4,14 +4,13 @@ import {
   Plus, 
   Filter, 
   Search,
-  MapPin,
   Clock,
   TrendingUp,
-  AlertTriangle,
   CheckCircle2,
   FileText,
   Zap,
   Phone,
+  RotateCcw,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -19,13 +18,26 @@ import { Input } from '@/components/ui/input';
 import { IncidentCard } from '@/components/IncidentCard';
 import { IncidentMap } from '@/components/IncidentMap';
 import { ReportIncidentModal } from '@/components/ReportIncidentModal';
-import { useAuth } from '@/contexts/AuthContext';
-import { useIncidents } from '@/contexts/IncidentContext';
-import { mockDepartments } from '@/data/mockData';
 import { cn } from '@/lib/utils';
-import { useSVGOverlay } from 'react-leaflet/SVGOverlay';
 
-// Custom Metric Card Components for CitizenDashboard
+// --- Types ---
+export interface Report {
+  id: string; 
+  senders: { id: string; name: string; role: string };
+  entryDate: string;
+  issueSince: string;
+  media_url: string[] | null;
+  description: string;
+  status: string;
+  priority: number;
+  upvotes: number;
+  lat: number;
+  lon: number;
+  pdf_url: string | null;
+  department?: { id: string; name: string };
+}
+
+// --- Sub-components ---
 function UniqueMetricCard({
   title,
   value,
@@ -58,73 +70,29 @@ function UniqueMetricCard({
         'absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-30 blur-2xl group-hover:opacity-50 transition-opacity',
         color
       )} />
-      <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-accent/20 opacity-0 group-hover:opacity-30 transition-opacity blur-xl" />
-
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              {title}
-            </p>
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: delay + 0.2 }}
-              className={cn('text-4xl font-display font-black', color)}
-            >
-              {value}
-            </motion.div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{title}</p>
+            <motion.div className={cn('text-4xl font-display font-black', color)}>{value}</motion.div>
           </div>
-
-          <motion.div
-            whileHover={{ rotate: 12, scale: 1.1 }}
-            transition={{ duration: 0.3 }}
-            className={cn('p-3 rounded-full', color, 'bg-opacity-20')}
-          >
+          <div className={cn('p-3 rounded-full', color, 'bg-opacity-20')}>
             <Icon className={cn('w-6 h-6', color)} />
-          </motion.div>
+          </div>
         </div>
-
         {trend && (
-          <motion.p
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: delay + 0.3 }}
-            className="text-xs text-muted-foreground mt-3 flex items-center gap-1"
-          >
+          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
             <TrendingUp className="w-3 h-3 text-success" />
             {trend}
-          </motion.p>
+          </p>
         )}
       </div>
-
-      <div className={cn(
-        'absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r',
-        color,
-        'opacity-0 group-hover:opacity-100 transition-opacity'
-      )} />
     </motion.div>
   );
 }
 
-export interface Report {
-  id: string; 
-  senders: { id: string; name: string; role: string };
-  entryDate: string;
-  issueSince: string;
-  media_url: string[] | null;
-  description: string;
-  status: string;
-  priority: number;
-  upvotes: number;
-  lat: number;
-  lon: number;
-  pdf_url: string | null;
-  department?: { id: string; name: string };
-}
-
+// --- Main Component ---
 export default function CitizenDashboard() {
-  // ✅ READ USER FROM LOCALSTORAGE
   const storedUser = localStorage.getItem('urbanflow_user');
   const userId = storedUser ? JSON.parse(storedUser).id : null;
 
@@ -137,77 +105,59 @@ export default function CitizenDashboard() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [upvotedIncidents, setUpvotedIncidents] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!userId) {
+  // Fetch Reports
+  const fetchReports = async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(`http://localhost:8080/getReports?userId=${userId}`);
+      if (!response.ok) throw new Error(`Status: ${response.status}`);
+      const data = await response.json();
+
+      setReports(data);
+      setInProgressReports(data.filter((r: Report) => r.status === 'IN_PROGRESS'));
+      setResolvedReports(data.filter((r: Report) => r.status === 'RESOLVED'));
+      setUpvotes(data.reduce((sum: number, r: Report) => sum + r.upvotes, 0));
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    const fetchReports = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8080/getReports?userId=${userId}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+  useEffect(() => { fetchReports(); }, [userId]);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+  // Handle Close / Re-open actions
+  const handleReportAction = async (id: string, action: 'reOpen' | 'closeReport') => {
+    try {
+      const response = await fetch(`http://localhost:8080/${action}?reportID=${id}`, {
+        method: 'PUT',
+      });
 
-        const data = await response.json();
-
-        const inProgress = data.filter((r: Report) => r.status === 'IN_PROGRESS');
-        const resolved = data.filter((r: Report) => r.status === 'RESOLVED');
-        const totalUpvotes = data.reduce(
-          (sum: number, r: Report) => sum + r.upvotes,
-          0
-        );
-
-        setReports(data);
-        setInProgressReports(inProgress);
-        setResolvedReports(resolved);
-        setUpvotes(totalUpvotes);
-      } catch (error) {
-        console.error('Error fetching reports:', error);
-        setReports([]);
-      } finally {
-        setLoading(false);
+      if (response.ok) {
+        // Refresh local state to reflect change immediately
+        fetchReports();
+      } else {
+        alert(`Failed to ${action} the report.`);
       }
-    };
-
-    fetchReports();
-  }, [userId]);
+    } catch (error) {
+      console.error(`Error during ${action}:`, error);
+    }
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-        >
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">
-              Welcome back 👋
-            </h1>
-            <p className="text-muted-foreground">
-              Track your reported issues and make a difference in your community.
-            </p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">Welcome back 👋</h1>
+            <p className="text-muted-foreground">Track your reported issues and make a difference.</p>
           </div>
-          <Button
-            onClick={() => setShowReportModal(true)}
-            className="bg-gradient-primary hover:opacity-90 shadow-glow"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Report New Issue
+          <Button onClick={() => setShowReportModal(true)} className="bg-gradient-primary hover:opacity-90 shadow-glow">
+            <Plus className="w-4 h-4 mr-2" /> Report New Issue
           </Button>
         </motion.div>
 
+        {/* Metric Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <UniqueMetricCard title="My Reports" value={reports.length} icon={FileText} color="text-blue-500" delay={0.1} />
           <UniqueMetricCard title="In Progress" value={inProgressReports.length} icon={Clock} color="text-orange-500" delay={0.2} />
@@ -220,49 +170,60 @@ export default function CitizenDashboard() {
             <div className="flex items-center gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search your incidents..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search your incidents..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
               </div>
-              <Button variant="outline" size="icon">
-                <Filter className="w-4 h-4" />
-              </Button>
+              <Button variant="outline" size="icon"><Filter className="w-4 h-4" /></Button>
             </div>
 
-            <div className="space-y-4">
+            {/* Incident List with Action Buttons */}
+            <div className="space-y-6">
               {reports
-                .filter(r =>
-                  r.description.toLowerCase().includes(searchQuery.toLowerCase())
-                )
+                .filter(r => r.description.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map((report, index) => (
-                  <IncidentCard
-                    key={report.id}
-                    incident={report}
-                    delay={index * 0.1}
-                    hasUpvoted={upvotedIncidents.has(report.id)}
-                    onUpvote={() => {
-                      if (!upvotedIncidents.has(report.id)) {
-                        setUpvotedIncidents(
-                          new Set([...upvotedIncidents, report.id])
-                        );
-                      }
-                    }}
-                  />
+                  <div key={report.id} className="bg-card rounded-xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <IncidentCard
+                      incident={report}
+                      delay={index * 0.1}
+                      hasUpvoted={upvotedIncidents.has(report.id)}
+                      onUpvote={() => {
+                        if (!upvotedIncidents.has(report.id)) {
+                          setUpvotedIncidents(new Set([...upvotedIncidents, report.id]));
+                        }
+                      }}
+                    />
+                    
+                    <div className="flex gap-3 px-6 pb-4 pt-2 border-t bg-muted/20">
+                      {report.status === 'RESOLVED' ? (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleReportAction(report.id, 'reOpen')}
+                          className="bg-white hover:bg-orange-50 text-orange-600 border-orange-200"
+                        >
+                          <RotateCcw className="w-3 h-3 mr-2" />
+                          Re-open Issue
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleReportAction(report.id, 'closeReport')}
+                          className="bg-white hover:bg-green-50 text-green-600 border-green-200"
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-2" />
+                          Mark as Resolved
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 ))}
             </div>
           </div>
 
           <div className="space-y-6">
             <IncidentMap incidents={reports} height="300px" />
-            <Button
-              className="w-full bg-blue-500 text-white"
-              onClick={() => window.open('tel:+911234567890')}
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Call Support
+            <Button className="w-full bg-blue-500 text-white" onClick={() => window.open('tel:+911234567890')}>
+              <Phone className="w-4 h-4 mr-2" /> Call Support
             </Button>
           </div>
         </div>
@@ -270,7 +231,10 @@ export default function CitizenDashboard() {
         <ReportIncidentModal
           open={showReportModal}
           onOpenChange={setShowReportModal}
-          onSubmit={() => setShowReportModal(false)}
+          onSubmit={() => {
+            setShowReportModal(false);
+            fetchReports();
+          }}
         />
       </div>
     </DashboardLayout>

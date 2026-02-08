@@ -64,7 +64,7 @@ public class CloudinaryService{
         try {
             Map params = ObjectUtils.asMap(
                     "folder", folderName,
-                    "public_id", fileName + ".pdf",
+                    "public_id", fileName,
                     "resource_type", "raw",
                     "overwrite", true,
                     "type", "upload"

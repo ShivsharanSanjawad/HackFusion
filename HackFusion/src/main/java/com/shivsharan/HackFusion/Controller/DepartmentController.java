@@ -64,14 +64,4 @@ public class DepartmentController {
         List<ReportStatus> ret = reportService.getReportStatus(reportid) ;
         return ResponseEntity.ok().body(ret);
     }
-
-    @PutMapping("/closeReport")
-    public ResponseEntity<String> closeReport(@RequestBody UUID reportID){
-        String link = reportService3.getPDFReport(reportID);
-
-        if (link == null || link.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(link);
-    }
 }

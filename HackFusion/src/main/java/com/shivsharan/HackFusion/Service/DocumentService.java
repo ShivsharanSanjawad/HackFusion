@@ -61,6 +61,9 @@ public class DocumentService {
         if (report.getDepartment() != null) {
             context.put("department", report.getDepartment().getName());
         }
+        else{
+            context.put("department", " ");
+        }
 
         if (report.getSenders() != null) {
             context.put("operatorName", report.getSenders().getUsername());

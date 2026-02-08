@@ -20,6 +20,8 @@ public class ReportController2 {
     @Autowired
     ReportService3 reportService3 ;
 
+
+
     @PostMapping("/reOpen")
     public ResponseEntity reOpen(@RequestParam UUID reportId){
         reportService3.reOpen(reportId);
@@ -56,5 +58,28 @@ public class ReportController2 {
     public double getCivicScore(@RequestParam UUID operatorID)
     {
         return reportService3.getCivicScore(operatorID);
+    }
+
+    @PutMapping("/closeReport")
+    public ResponseEntity<String> closeReport(@RequestParam UUID reportID) {
+        // 1. Fetch the report from the DB
+        Report report = reportRepository.findById(reportID)
+                .orElseThrow(() -> new RuntimeException("Report not found"));
+
+        // 2. Update the status
+        report.setStatus("CLOSED");
+
+        // 3. Save the updated report
+        reportRepository.save(report);
+
+        // 4. Generate the PDF
+        String link = reportService3.getPDFReport(reportID);
+
+        if (link == null || link.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Status updated to CLOSED, but PDF generation failed.");
+        }
+
+        return ResponseEntity.ok(link);
     }
 }
